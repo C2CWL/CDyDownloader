@@ -310,6 +310,7 @@ private val paths = mapOf(
                         vm.error = null; candidate = null
                     }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
                 }
+                vm.preview?.let { preview -> PreviewCard(preview, vm, submit) }
                 if(detected?.platform == Platform.DOUYIN) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("图集保存内容", style = MaterialTheme.typography.labelMedium,
@@ -326,7 +327,7 @@ private val paths = mapOf(
                     }
                 }
                 if(detected != null && vm.qualityLoading)
-                    Text("正在获取可选画质…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("正在解析作品信息…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 vm.qualityCatalog?.let { catalog ->
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("画质", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -92,6 +92,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var qualityCatalog by mutableStateOf<MediaSpecifications?>(null)
         private set
     var qualityChosen by mutableStateOf<String?>(null)
+    /** The resolved work, shown on the home page before anything is queued. */
+    var preview by mutableStateOf<MediaPreview?>(null)
+        private set
     var qualityLoading by mutableStateOf(false)
         private set
     private var qualityJob: Job? = null
@@ -103,6 +106,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         qualityKey = link?.key
         qualityCatalog = null
         qualityChosen = null
+        preview = null
         qualityLoading = link != null
         if(link == null) return
         val key = link.key
@@ -110,6 +114,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val info = VideoResolver().resolve(link)
                 val specs = info.specifications
+                if(qualityKey == key) preview = info.toPreview()
                 if(info.images.isEmpty() && specs != null && specs.videos.size > 1) qualityCatalog = specs
             } catch(e: CancellationException) { throw e }
             catch(_: Exception) { }

@@ -15,7 +15,9 @@ data class VideoInfo(
     val video: String, val audio: String? = null, val quality: String = "",
     val referer: String, val userAgent: String, val images: List<String> = emptyList(),
     val music: String? = null, val videoFallbacks: List<String> = emptyList(), val resolution: String = "", val audioCodec: String = "", val imageVideos: List<String?> = emptyList(), val separateAlbumMusic: Boolean = false, val musicCandidates: List<String> = emptyList(),
-    val videoPlan: SegmentPlan? = null, val audioPlan: SegmentPlan? = null, val audioUserAgent: String? = null, val audioFallbacks: List<String> = emptyList(), val fps: Float = 0f, val specifications: MediaSpecifications? = null, val directVideoTracks: List<DirectVideoTrack> = emptyList(), val videoDecodeKey: String? = null
+    val videoPlan: SegmentPlan? = null, val audioPlan: SegmentPlan? = null, val audioUserAgent: String? = null, val audioFallbacks: List<String> = emptyList(), val fps: Float = 0f, val specifications: MediaSpecifications? = null, val directVideoTracks: List<DirectVideoTrack> = emptyList(), val videoDecodeKey: String? = null,
+    val author: String = "", val cover: String = "", val likes: Int = -1, val comments: Int = -1,
+    val shares: Int = -1, val publishedAt: Long = 0
 )
 
 class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
@@ -80,9 +82,16 @@ class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
         val play = api(get("https://api.bilibili.com/x/player/playurl?bvid=$bvid&cid=$cid&qn=127&fnval=4048&fourk=1"))
         val canonical = VideoLink(Platform.BILI, "https://www.bilibili.com/video/$bvid?p=${link.part}", "$bvid:p${link.part}", link.part)
         val title = data.getString("title") + if(pages.length() > 1) " · P${link.part} ${page.optString("part")}" else ""
+        val owner = data.optJSONObject("owner")?.optString("name").orEmpty()
+        val stat = data.optJSONObject("stat")
+        val poster = data.optString("pic")
+        val publishedAt = data.optLong("pubdate") * 1000
+        fun biliMeta(info: VideoInfo) = info.copy(author = owner, cover = poster,
+            likes = stat?.optInt("like", -1) ?: -1, comments = stat?.optInt("reply", -1) ?: -1,
+            shares = stat?.optInt("share", -1) ?: -1, publishedAt = publishedAt)
         val dash = play.optJSONObject("dash")
         if (dash != null) {
-            return biliVideoInfo(canonical,title,dash,selection)
+            return biliMeta(biliVideoInfo(canonical,title,dash,selection))
 
         }
         val segments = play.optJSONArray("durl") ?: error("此视频暂无可下载资源，可能需要登录或会员权限")
@@ -90,8 +99,8 @@ class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
         val segment = segments.getJSONObject(0)
         check(play.optString("format").contains("mp4")) { "暂不支持此视频格式" }
         check(selection == null || (selection.video == "bili:combined" && selection.audio == null)) { "所选规格已不可用，请重新选择" }
-        return VideoInfo(canonical, canonical.key, title, https(segment.getString("url")), quality = "默认画质", referer = canonical.url, userAgent = DESKTOP, videoFallbacks = biliBackupUrls(segment),
-            specifications = MediaSpecifications(listOf(TrackOption("bili:combined","原始画质", "自带音轨",true)),emptyList(),TrackSelection("bili:combined")))
+        return biliMeta(VideoInfo(canonical, canonical.key, title, https(segment.getString("url")), quality = "默认画质", referer = canonical.url, userAgent = DESKTOP, videoFallbacks = biliBackupUrls(segment),
+            specifications = MediaSpecifications(listOf(TrackOption("bili:combined","原始画质", "自带音轨",true)),emptyList(),TrackSelection("bili:combined"))))
     }
     private fun api(text: String): JSONObject {
         val obj = JSONObject(text)

@@ -163,7 +163,10 @@ internal object DouyinPage {
             val kind = if(link.url.contains("/slides/")) "slides" else "note"
             val canonical = link.copy(url = "https://www.douyin.com/$kind/$id")
             return VideoInfo(canonical, "dy:$id", title, "", quality = "${urls.size} 张图片",
-                referer = "https://www.douyin.com/", userAgent = VideoResolver.MOBILE, images = urls, music = music, imageVideos = imageVideos, separateAlbumMusic = kind == "slides" || imageVideos.any { it != null }, musicCandidates = audioCandidates)
+                referer = "https://www.douyin.com/", userAgent = VideoResolver.MOBILE, images = urls, music = music, imageVideos = imageVideos, separateAlbumMusic = kind == "slides" || imageVideos.any { it != null }, musicCandidates = audioCandidates,
+                author = authorOf(item), cover = urls.first(), likes = countOf(item, "digg_count"),
+                comments = countOf(item, "comment_count"), shares = countOf(item, "share_count"),
+                publishedAt = item.optLong("create_time") * 1000)
         }
         val urls = play?.optJSONArray("url_list") ?: error("没有可用的视频地址")
         val originals = (0 until urls.length()).mapNotNull { validUrl(urls.optString(it)) }
@@ -182,7 +185,10 @@ internal object DouyinPage {
         val ranked = mobileVariants(video).sortedWith(qualityOrder).flatMap { it.addresses }
         val candidates = (ranked + highQuality + alternates + originals).distinct()
         return catalog(VideoInfo(link, "dy:$id", title, candidates.first(), quality = "自动画质",
-            referer = "https://www.douyin.com/", userAgent = VideoResolver.MOBILE, videoFallbacks = candidates.drop(1)), mobileVariants(video))
+            referer = "https://www.douyin.com/", userAgent = VideoResolver.MOBILE, videoFallbacks = candidates.drop(1),
+            author = authorOf(item), cover = coverOf(item), likes = countOf(item, "digg_count"),
+            comments = countOf(item, "comment_count"), shares = countOf(item, "share_count"),
+            publishedAt = item.optLong("create_time") * 1000), mobileVariants(video))
     }
     private fun catalog(info: VideoInfo, variants: List<VideoVariant>): VideoInfo {
         val tracks = variants.filter { it.addresses.isNotEmpty() }.sortedWith(qualityOrder).map { it.track() }
@@ -221,6 +227,13 @@ internal object DouyinPage {
         val path = url.toHttpUrlOrNull()!!.encodedPath.lowercase()
         return "dy-water" in path || "watermark" in path
     }
+    private fun authorOf(item: JSONObject): String {
+        val author = item.optJSONObject("author") ?: return ""
+        return author.optString("nickname").ifBlank { author.optString("unique_id") }
+    }
+    private fun countOf(item: JSONObject, key: String): Int = item.optJSONObject("statistics")?.optInt(key, -1) ?: -1
+    private fun coverOf(item: JSONObject): String =
+        firstUrl(item.optJSONObject("video")?.optJSONObject("cover")?.optJSONArray("url_list")).orEmpty()
     private fun isAudioAddress(url: String): Boolean {
         val parsed = url.toHttpUrlOrNull() ?: return false
         val path = parsed.encodedPath.lowercase()
