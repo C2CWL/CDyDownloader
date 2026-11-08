@@ -3,17 +3,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 android {
-    namespace = "com.daxiaamu.dbdown"
+    namespace = "c2cw.cdydownload"
     compileSdk = 37
     defaultConfig {
-        applicationId = "com.daxiaamu.dbdown"
+        applicationId = "c2cw.cdydownload"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         minSdk = 33
         targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 44
-        versionName = "0.6.22"
-        buildConfigField("String", "UPDATE_REPOSITORY", "\"daxiaamu/DBdown\"")
+        versionCode = 100
+        versionName = "1.0"
+        buildConfigField("String", "UPDATE_REPOSITORY", "\"C2CWL/DBdown\"")
         buildConfigField("String", "UPDATE_BRANCH", "\"main\"")
     }
     val signingPath = providers.environmentVariable("DBDOWN_KEYSTORE").orNull
