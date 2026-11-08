@@ -1,0 +1,15 @@
+name: Probe SDK
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - name: List platforms
+        run: |
+          S=$(ls $ANDROID_SDK_ROOT/cmdline-tools/*/bin/sdkmanager | head -1)
+          "$S" --list 2>/dev/null | grep -E "platforms;android-3[4-9]|build-tools;3[6-9]" | sort -u | head -30
+          echo '--- channels ---'
+          "$S" --list --channel=3 2>/dev/null | grep -E "platforms;android" | sort -u | head -15
