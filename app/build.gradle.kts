@@ -11,9 +11,9 @@ android {
         minSdk = 33
         targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 105
-        versionName = "1.4.1"
-        buildConfigField("String", "UPDATE_REPOSITORY", "\"C2CWL/DBdown\"")
+        versionCode = 106
+        versionName = "1.4.2"
+        buildConfigField("String", "UPDATE_REPOSITORY", "\"C2CWL/CDyDownloader\"")
         buildConfigField("String", "UPDATE_BRANCH", "\"main\"")
     }
     val signingPath = providers.environmentVariable("DBDOWN_KEYSTORE").orNull

@@ -155,7 +155,7 @@ def main():
     tag = os.environ["UPDATE_TAG"]
     # The fork publishes its own releases; the guard only keeps foreign repositories from
     # generating metadata against someone else's build.
-    if repository != "C2CWL/DBdown":
+    if repository != "C2CWL/CDyDownloader":
         raise ValueError("Workflow must run in the configured update repository")
     branch = os.environ.get("UPDATE_BRANCH", "main")
     release = json.loads(fetch(f"https://api.github.com/repos/{repository}/releases/tags/{urllib.parse.quote(tag, safe='')}")[0])
