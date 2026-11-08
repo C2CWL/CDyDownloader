@@ -5,6 +5,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
@@ -30,6 +31,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -82,8 +84,8 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
     var pointerPressed by remember { mutableStateOf(false) }
     val pressed = pointerPressed || tabPressed
     val islandScale by animateFloatAsState(
-        targetValue = if(pressed) .96f else 1f,
-        animationSpec = if(pressed) tween(100) else spring(dampingRatio = .8f, stiffness = 650f),
+        targetValue = if(pressed) .94f else 1f,
+        animationSpec = if(pressed) tween(75) else spring(dampingRatio = .84f, stiffness = 950f),
         label = "tabIslandPress"
     )
     Box(modifier.width(TabWidth * 2 + TabInset * 2).testTag("tabIsland")
@@ -96,7 +98,8 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
             } finally { pointerPressed = false }
         }
         .graphicsLayer { scaleX = islandScale; scaleY = islandScale }
-        .shadow(4.dp,CircleShape).clip(CircleShape)) {
+        .shadow(3.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp))
+        .border(1.dp, colors.outlineVariant.copy(alpha = .8f), RoundedCornerShape(22.dp))) {
         TabGlassBackdrop(haze,progress,rtl,Modifier.matchParentSize())
         Box(Modifier.padding(TabInset).height(TabHeight).selectableGroup()
             .draggable(state = dragState, orientation = Orientation.Horizontal,
@@ -107,10 +110,11 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
                     val target = if(abs(velocity) > flingThreshold) {
                         if(velocity > 0) 1 else 0
                     } else position.roundToInt().coerceIn(0, 1)
-                    pager.animateScrollToPage(target)
+                    pager.animateScrollToPage(target,
+                        animationSpec = spring(dampingRatio = .86f, stiffness = 720f))
                 })) {
             Box(Modifier.offset { IntOffset((progress * travel).roundToInt(), 0) }
-                .width(TabWidth).fillMaxHeight().clip(CircleShape)
+                .width(TabWidth).fillMaxHeight().clip(RoundedCornerShape(16.dp))
                 .testTag("tabCapsule"))
             Row(Modifier.fillMaxSize()) {
                 listOf("首页", "下载").forEachIndexed { index, label ->
@@ -138,7 +142,7 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
     val capsuleTint=lerp(colors.primaryContainer,colors.primary,0.30f)
     val cutout=remember { Path() }
     val style=HazeStyle(backgroundColor=colors.background,tint=HazeTint(Color.Transparent),
-        blurRadius=26.dp,noiseFactor=0f)
+        blurRadius=8.dp,noiseFactor=0f)
     Box(modifier.drawWithContent {
         drawContent()
         val inset=TabInset.roundToPx().toFloat()
@@ -147,9 +151,9 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
         val left=inset+if(rtl) travel-offset else offset
         cutout.reset()
         cutout.addRoundRect(RoundRect(left,inset,left+TabWidth.roundToPx(),size.height-inset,
-            CornerRadius((size.height-2*inset)/2)))
+            CornerRadius(minOf(16.dp.toPx(), (size.height-2*inset)/2))))
         // Only flat tints are clipped, after Haze finishes drawing its render layer.
-        clipPath(cutout,ClipOp.Difference) { drawRect(colors.background.copy(alpha=0.46f)) }
-        drawPath(cutout,capsuleTint.copy(alpha=0.46f))
+        clipPath(cutout,ClipOp.Difference) { drawRect(colors.background.copy(alpha=0.62f)) }
+        drawPath(cutout,capsuleTint.copy(alpha=0.58f))
     }.hazeEffect(haze,style=style))
 }

@@ -20,7 +20,7 @@ import androidx.compose.ui.window.Dialog
     val video=catalog?.videos?.find { it.id == state.selection?.video }
     val album = state.albumContent != null && catalog == null
     val valid = if(album) state.albumContent != null && state.albumHasMusic || state.albumContent == AlbumContent.IMAGES else video != null
-    AlertDialog(onDismissRequest=editor::dismiss,shape=RoundedCornerShape(28.dp),
+    AlertDialog(onDismissRequest=editor::dismiss,shape=RoundedCornerShape(20.dp),
         title={ Text("下载规格") }, text={
             Column(verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 if(state.loading) {
@@ -81,7 +81,7 @@ import androidx.compose.ui.window.Dialog
     Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
         Text(label,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
         Box {
-            Surface(onClick={ expanded=true },enabled=enabled && options.isNotEmpty(),shape=RoundedCornerShape(14.dp),
+            Surface(onClick={ expanded=true },enabled=enabled && options.isNotEmpty(),shape=RoundedCornerShape(12.dp),
                 border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),modifier=Modifier.fillMaxWidth().testTag("spec-$label")) {
                 Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -106,7 +106,7 @@ import androidx.compose.ui.window.Dialog
 @Composable internal fun ConfirmationDialogFrame(title: String, dismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit, actions: @Composable RowScope.() -> Unit) {
     Dialog(onDismissRequest=dismiss) {
-        Surface(shape=RoundedCornerShape(28.dp),color=AlertDialogDefaults.containerColor,
+        Surface(shape=RoundedCornerShape(20.dp),color=AlertDialogDefaults.containerColor,
             tonalElevation=AlertDialogDefaults.TonalElevation) {
             Column(Modifier.padding(start=24.dp,end=24.dp,top=24.dp,bottom=12.dp)) {
                 Text(title,style=MaterialTheme.typography.headlineSmall)
