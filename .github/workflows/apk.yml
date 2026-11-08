@@ -24,7 +24,7 @@ jobs:
           SDKMANAGER=$(ls $ANDROID_SDK_ROOT/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -1)
           echo "sdkmanager: $SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
-          "$SDKMANAGER" --install "platforms;android-37" > /dev/null
+          "$SDKMANAGER" --install "platforms;android-36" > /dev/null
           "$SDKMANAGER" --install "build-tools;37.0.0" > /dev/null 2>&1 || \
           "$SDKMANAGER" --install "build-tools;36.0.0" > /dev/null 2>&1 || true
       - uses: gradle/actions/setup-gradle@v4
