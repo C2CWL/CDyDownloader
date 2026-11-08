@@ -29,11 +29,12 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
                 outputUris = o.optJSONArray("outputUris")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty(),
                 mimeType = o.optString("mimeType", "video/mp4"), resolution = o.optString("resolution"), fps = o.optDouble("fps",0.0).toFloat(),
                 selection = o.optJSONObject("selection")?.let { TrackSelection(it.getString("video"),it.optString("audio").takeIf(String::isNotBlank)) },
-                albumContent = runCatching { AlbumContent.valueOf(o.optString("albumContent")) }.getOrDefault(AlbumContent.ALL))
+                albumContent = runCatching { AlbumContent.valueOf(o.optString("albumContent")) }.getOrDefault(AlbumContent.ALL),
+                albumImageIndices = o.optJSONArray("albumImageIndices")?.let { a -> (0 until a.length()).map { a.optInt(it, -1) } })
         }
     }.getOrDefault(emptyList())
-    @Synchronized fun add(link: VideoLink, albumMode: AlbumMode = AlbumMode.IMAGES, selection: TrackSelection? = null, albumContent: AlbumContent = AlbumContent.ALL): DownloadTask {
-        val task = DownloadTask(source = link.url, key = link.key, platform = link.platform, albumMode = albumMode, selection = selection, albumContent = albumContent, status = if(_paused.value) TaskStatus.PAUSED else TaskStatus.QUEUED)
+    @Synchronized fun add(link: VideoLink, albumMode: AlbumMode = AlbumMode.IMAGES, selection: TrackSelection? = null, albumContent: AlbumContent = AlbumContent.ALL, albumImageIndices: List<Int>? = null): DownloadTask {
+        val task = DownloadTask(source = link.url, key = link.key, platform = link.platform, albumMode = albumMode, selection = selection, albumContent = albumContent, albumImageIndices = albumImageIndices, status = if(_paused.value) TaskStatus.PAUSED else TaskStatus.QUEUED)
         _tasks.value = listOf(task) + _tasks.value
         persist()
         return task
@@ -70,9 +71,9 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
         if(!task.status.active) return false
         val mode = AlbumMode.IMAGES
         update(id) { it.copy(title = info.title, key = info.id, quality = if(info.images.isEmpty()) info.quality else when(it.albumContent) {
-            AlbumContent.IMAGES -> "${info.images.size} 张图片"
+            AlbumContent.IMAGES -> "${normalizedAlbumImageIndices(info.images.size, it.albumImageIndices).size} 张图片"
             AlbumContent.MUSIC -> "配乐"
-            AlbumContent.ALL -> "${info.images.size} 张图片 · ${if(!info.music.isNullOrBlank()) "图片和配乐" else "图片"}"
+            AlbumContent.ALL -> "${normalizedAlbumImageIndices(info.images.size, it.albumImageIndices).size} 张图片 · ${if(!info.music.isNullOrBlank()) "图片和配乐" else "图片"}"
         }, albumMode = mode, resolution = info.resolution, fps = info.fps, status = TaskStatus.DOWNLOADING) }
         return true
     }
@@ -89,7 +90,9 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
             put("id", t.id); put("source", t.source); put("key", t.key); put("platform", t.platform.name)
             put("title", t.title); put("status", t.status.name); put("bytes", t.bytes); put("total", t.total)
             put("albumMode", t.albumMode.name); put("outputUris", JSONArray(t.outputUris)); put("mimeType", t.mimeType)
-            put("fps",t.fps); t.selection?.let { put("selection",JSONObject().put("video",it.video).put("audio",it.audio.orEmpty())) }
+            put("fps",t.fps); put("albumContent", t.albumContent.name)
+            t.albumImageIndices?.let { put("albumImageIndices", JSONArray(it)) }
+            t.selection?.let { put("selection",JSONObject().put("video",it.video).put("audio",it.audio.orEmpty())) }
             put("resolution", t.resolution); put("quality", t.quality); put("uri", t.uri); put("error", t.error); put("created", t.created)
         }) }
         prefs.edit().putBoolean("paused", _paused.value).putString("tasks", array.toString()).apply()
