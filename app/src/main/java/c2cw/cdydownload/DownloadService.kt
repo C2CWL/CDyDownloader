@@ -184,7 +184,7 @@ class DownloadService : Service() {
         val measuredFps = savedFrameRate(this@DownloadService,uri.toString())
         store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
             resolution = measured.ifBlank { it.resolution }, fps = measuredFps.takeIf { it > 0 } ?: it.fps, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
-        notifyResult(task.id, info.title, "已保存到 Movies/$saveFolder", uri)
+        notifyResult(task.id, info.title, "已保存到 Download/$saveFolder", uri)
     }
 
     private suspend fun downloadAlbum(task: DownloadTask, info: VideoInfo, dir: File, progress: TaskTransferProgress) {
@@ -372,11 +372,19 @@ class DownloadService : Service() {
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, "$clean-${id.take(12)}${if(motion) "_MP" else ""}.$extension")
             put(MediaStore.Video.Media.MIME_TYPE, mime)
-            put(MediaStore.Video.Media.RELATIVE_PATH, "${if(image) Environment.DIRECTORY_PICTURES else if(audio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_MOVIES}/$saveFolder")
+            put(MediaStore.Video.Media.RELATIVE_PATH, when {
+                image -> "${Environment.DIRECTORY_PICTURES}/$saveFolder"
+                audio -> "${Environment.DIRECTORY_MUSIC}/$saveFolder"
+                else -> "${Environment.DIRECTORY_DOWNLOADS}/$saveFolder"
+            })
             put(MediaStore.Video.Media.IS_PENDING, 1)
             if(image && takenAt != null) put(MediaStore.Images.Media.DATE_TAKEN, takenAt)
         }
-        val uri = contentResolver.insert(if(image) MediaStore.Images.Media.EXTERNAL_CONTENT_URI else if(audio) MediaStore.Audio.Media.EXTERNAL_CONTENT_URI else MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values) ?: error("无法创建视频文件")
+        val uri = contentResolver.insert(when {
+            image -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            audio -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            else -> MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        }, values) ?: error("无法创建文件")
         try {
             contentResolver.openOutputStream(uri)?.use { output ->
                 file.inputStream().use { input ->

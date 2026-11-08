@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -182,7 +183,7 @@ private val paths = mapOf(
     }
     Surface(Modifier.fillMaxSize().then(if(updateState.dialog) Modifier.hazeSource(updateHaze) else Modifier),
         color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))) {
             Box(Modifier.fillMaxSize().hazeSource(haze)) {
                 if(vm.settings) {
                     SettingsPage(vm, topInset) { enabled -> vm.setClipboard(enabled); if(enabled) checkClipboard() }
@@ -262,6 +263,7 @@ private val paths = mapOf(
 @Composable private fun LinkInputCard(vm: MainViewModel, submit: () -> Unit) {
     val context = LocalContext.current
     val detected = remember(vm.input) { Links.detect(vm.input) }
+    LaunchedEffect(vm.input) { vm.prepareQuality(detected) }
     val focus = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
     var candidate by remember { mutableStateOf<String?>(null) }
@@ -314,6 +316,23 @@ private val paths = mapOf(
                         }
                         Text("视频不受影响，图集按所选内容保存。", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                if(detected != null && vm.qualityLoading)
+                    Text("正在获取可选画质…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                vm.qualityCatalog?.let { catalog ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("画质", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = vm.qualityChosen == null, onClick = { vm.qualityChosen = null },
+                                label = { Text("自动") }, shape = CircleShape, modifier = Modifier.testTag("quality-auto"))
+                            catalog.videos.forEach { option ->
+                                FilterChip(selected = vm.qualityChosen == option.id,
+                                    onClick = { vm.qualityChosen = option.id.takeIf { vm.qualityChosen != it } },
+                                    label = { Text(option.label) }, shape = CircleShape,
+                                    modifier = Modifier.testTag("quality-${option.id}"))
+                            }
+                        }
                     }
                 }
                 vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
@@ -588,12 +607,12 @@ private val paths = mapOf(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("保存位置", style = MaterialTheme.typography.titleMedium)
-                    Text("视频：Movies / ${vm.saveFolder}\n图片：Pictures / ${vm.saveFolder}\n配乐：Music / ${vm.saveFolder}",
+                    Text("视频：Download / ${vm.saveFolder}\n图片：Pictures / ${vm.saveFolder}\n配乐：Music / ${vm.saveFolder}",
                         style = MaterialTheme.typography.bodyLarge)
                 }
                 Glyph("arrow")
             }
-            Text("视频和图片保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音图集按原始素材保存，图片与配乐分开下载。",
+            Text("视频保存到下载目录，图片和动图保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音图集按原始素材保存，图片与配乐分开下载。",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

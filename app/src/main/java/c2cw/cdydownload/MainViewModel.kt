@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -87,6 +88,43 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var input by mutableStateOf("")
     /** Chosen before the download starts; only album works use it. */
     var albumContent by mutableStateOf(AlbumContent.ALL)
+    /** Resolved ahead of the download so the quality can be picked on the home page. */
+    var qualityCatalog by mutableStateOf<MediaSpecifications?>(null)
+        private set
+    var qualityChosen by mutableStateOf<String?>(null)
+    var qualityLoading by mutableStateOf(false)
+        private set
+    private var qualityJob: Job? = null
+    private var qualityKey: String? = null
+
+    fun prepareQuality(link: VideoLink?) {
+        if(link?.key == qualityKey) return
+        qualityJob?.cancel()
+        qualityKey = link?.key
+        qualityCatalog = null
+        qualityChosen = null
+        qualityLoading = link != null
+        if(link == null) return
+        val key = link.key
+        qualityJob = viewModelScope.launch {
+            try {
+                val info = VideoResolver().resolve(link)
+                val specs = info.specifications
+                if(info.images.isEmpty() && specs != null && specs.videos.size > 1) qualityCatalog = specs
+            } catch(e: CancellationException) { throw e }
+            catch(_: Exception) { }
+            if(qualityKey == key) qualityLoading = false
+        }
+    }
+    private fun chosenQuality(): TrackSelection? {
+        val catalog = qualityCatalog ?: return null
+        val chosen = qualityChosen ?: return null
+        val option = catalog.videos.find { it.id == chosen } ?: return null
+        if(option.id == catalog.selected.video) return null
+        val selection = catalog.selectVideo(option.id)
+        if(!option.hasAudio) return selection.copy(audio = catalog.audios.firstOrNull()?.id ?: selection.audio)
+        return selection
+    }
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     internal val clipboard = ClipboardSuggestions(viewModelScope, { VideoResolver().resolve(it) }, gate::shouldShow, ::rememberHandled)
@@ -119,9 +157,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun submit(): Boolean {
         val link = Links.detect(input)
         if(link == null) { error = "请粘贴 B 站、抖音、YouTube、微博或微信视频号链接，也支持分享文案、BV / AV 号和 YouTube 视频 ID"; return false }
-        val task = enqueue(link)
+        val task = enqueue(link, selection = chosenQuality())
         if(!start(task.id)) { error = store.get(task.id)?.error; return false }
         inputVisible = false; tab = 1; settings = false
+        prepareQuality(null)
         return true
     }
     fun downloadSuggestion(): Boolean {
@@ -134,8 +173,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         tab=1; settings=false
         return start(task.id)
     }
-    private fun enqueue(link: VideoLink, info: VideoInfo? = null): DownloadTask {
-        val task = store.add(link, albumContent = albumContent)
+    private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null): DownloadTask {
+        val task = store.add(link, selection = selection, albumContent = albumContent)
         if(info != null) store.update(task.id) {
             it.copy(title = info.title, quality = info.quality, resolution = info.resolution)
         }
