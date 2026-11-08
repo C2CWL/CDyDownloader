@@ -46,7 +46,7 @@ import java.util.Locale
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("逗逼下载器 · DBDown", style = MaterialTheme.typography.titleMedium)
+                    Text("CDy下载器 · CDy", style = MaterialTheme.typography.titleMedium)
                     Text("版本 ${manager.versionName}", style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -60,28 +60,10 @@ import java.util.Locale
             }
             HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.outlineVariant)
             AboutLinkRow("开放源代码", "https://github.com/${c2cw.cdydownload.BuildConfig.UPDATE_REPOSITORY}", "openSource")
-            HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.outlineVariant)
-            authorLinks.forEachIndexed { index, link ->
-                AboutLinkRow(link.title, link.url, "author_${link.id}", link.description)
-                if (index < authorLinks.lastIndex) {
-                    HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
         }
     }
 }
 
-private data class AuthorLink(val id: String, val title: String, val url: String, val description: String? = null)
-
-private val authorLinks = listOf(
-    AuthorLink("blog", "大侠阿木博客", "https://www.daxiaamu.com/"),
-    AuthorLink("coolapk", "酷安", "https://coolapk.com/u/%E5%A4%A7%E4%BE%A0%E9%98%BF%E6%9C%A8", "@大侠阿木"),
-    AuthorLink("weibo", "微博", "https://weibo.com/daxiaamu", "@大侠阿木"),
-    AuthorLink("douyin", "抖音", "https://v.douyin.com/GYj11bL8vwE/", "@大侠阿木"),
-    AuthorLink("bilibili", "B站", "https://space.bilibili.com/317357319", "@大侠阿木"),
-    AuthorLink("github", "Github", "https://github.com/daxiaamu", "@daxiaamu"),
-    AuthorLink("afdian", "爱发电", "https://ifdian.net/a/daxiaamu", "@大侠阿木"),
-)
 
 @Composable private fun AboutLinkRow(title: String, url: String, tag: String, description: String? = null) {
     val context = LocalContext.current

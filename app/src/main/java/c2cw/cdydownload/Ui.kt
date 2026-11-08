@@ -192,8 +192,8 @@ private val paths = mapOf(
                 ) { page ->
                     if(page == 0) {
                     Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset).padding(horizontal = 28.dp).padding(bottom = 120.dp),
-                        contentAlignment = if(vm.inputVisible) Alignment.TopCenter else Alignment.Center) {
-                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState())) {
+                        contentAlignment = Alignment.TopCenter) {
+                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(top = 20.dp)) {
                         // Reserve the carousel and its gap even before remote messages arrive.
                         Column(Modifier.fillMaxWidth().height(60.dp)) {
                             HomeMessageCarousel(vm.homeMessages, pager.currentPage == 0 && !vm.inputVisible)
