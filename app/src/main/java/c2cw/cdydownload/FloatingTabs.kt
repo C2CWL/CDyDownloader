@@ -31,6 +31,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -150,7 +151,7 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
         val left=inset+if(rtl) travel-offset else offset
         cutout.reset()
         cutout.addRoundRect(RoundRect(left,inset,left+TabWidth.roundToPx(),size.height-inset,
-            CornerRadius(minOf(16.dp.toPx(), (size.height-2*inset)/2)))
+            CornerRadius(minOf(16.dp.toPx(), (size.height-2*inset)/2))))
         // Only flat tints are clipped, after Haze finishes drawing its render layer.
         clipPath(cutout,ClipOp.Difference) { drawRect(colors.background.copy(alpha=0.62f)) }
         drawPath(cutout,capsuleTint.copy(alpha=0.58f))
