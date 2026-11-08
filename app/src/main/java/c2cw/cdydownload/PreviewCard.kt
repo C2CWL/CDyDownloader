@@ -1,5 +1,6 @@
 package c2cw.cdydownload
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,12 +11,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +31,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Shows what the parser found, so the work itself is visible before a task is queued. */
+/** Shows resolved media before queueing and lets album images be chosen individually. */
 @Composable internal fun PreviewCard(preview: MediaPreview, vm: MainViewModel, submit: () -> Unit) {
     Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth().testTag("previewCard")) {
@@ -58,14 +61,34 @@ import java.util.Locale
                 if(stats.isNotEmpty()) Text(stats.joinToString(" · "), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if(preview.images.size > 1) LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(preview.images.take(30)) { url ->
-                    RemoteImage(url, Modifier.size(76.dp).clip(RoundedCornerShape(10.dp)))
+            if(preview.isAlbum) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("已选 ${vm.selectedAlbumImages.size} / ${preview.images.size} 张",
+                        style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = vm::selectAllAlbumImages, modifier = Modifier.testTag("albumSelectAll")) { Text("全选") }
+                    TextButton(onClick = vm::clearAlbumImageSelection, modifier = Modifier.testTag("albumSelectNone")) { Text("清空") }
                 }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    itemsIndexed(preview.images) { index, url ->
+                        val selected = index in vm.selectedAlbumImages
+                        Box(Modifier.size(84.dp).clip(RoundedCornerShape(10.dp))
+                            .clickable { vm.toggleAlbumImage(index) }
+                            .testTag("albumImage-$index")) {
+                            RemoteImage(url, Modifier.fillMaxSize())
+                            PreviewBadge("${index + 1}")
+                            Checkbox(checked = selected, onCheckedChange = { vm.toggleAlbumImage(index) },
+                                modifier = Modifier.align(Alignment.TopEnd).testTag("albumImageCheck-$index"))
+                        }
+                    }
+                }
+                if(vm.selectedAlbumImages.isEmpty() && vm.albumContent != AlbumContent.MUSIC)
+                    Text("至少选择一张图片才能下载", color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
             }
-            if(preview.isAlbum) Button(onClick = submit, shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth().testTag("previewDownload")) {
-                Text(albumAction(preview, vm.albumContent))
+            if(preview.isAlbum) Button(onClick = submit,
+                enabled = vm.albumContent == AlbumContent.MUSIC && preview.hasMusic || vm.selectedAlbumImages.isNotEmpty(),
+                shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().testTag("previewDownload")) {
+                Text(albumAction(preview, vm.albumContent, vm.selectedAlbumImages.size))
             }
         }
     }
@@ -78,10 +101,10 @@ import java.util.Locale
     }
 }
 
-private fun albumAction(preview: MediaPreview, content: AlbumContent) = when(content) {
+private fun albumAction(preview: MediaPreview, content: AlbumContent, selectedCount: Int) = when(content) {
     AlbumContent.MUSIC -> "只保存配乐"
-    AlbumContent.IMAGES -> "保存 ${preview.images.size} 张图片"
-    AlbumContent.ALL -> if(preview.hasMusic) "保存 ${preview.images.size} 张图片和配乐" else "保存 ${preview.images.size} 张图片"
+    AlbumContent.IMAGES -> "保存所选 $selectedCount 张图片"
+    AlbumContent.ALL -> if(preview.hasMusic) "保存所选 $selectedCount 张图片和配乐" else "保存所选 $selectedCount 张图片"
 }
 
 private fun engagement(label: String, count: Int): String? = when {

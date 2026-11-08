@@ -190,8 +190,12 @@ class DownloadService : Service() {
     private suspend fun downloadAlbum(task: DownloadTask, info: VideoInfo, dir: File, progress: TaskTransferProgress) {
         val useDownloadTime = getSharedPreferences("settings", 0).getBoolean(IMAGE_DOWNLOAD_TIME, false)
         val published = mutableListOf<Uri>()
+        val imageIndices = if(task.albumContent == AlbumContent.MUSIC) emptyList()
+            else normalizedAlbumImageIndices(info.images.size, task.albumImageIndices)
+        check(task.albumContent == AlbumContent.MUSIC || imageIndices.isNotEmpty()) { "请至少选择一张图片" }
         try {
-            if(task.albumContent != AlbumContent.MUSIC) for((index, url) in info.images.withIndex()) {
+            if(task.albumContent != AlbumContent.MUSIC) for(index in imageIndices) {
+                val url = info.images[index]
                 currentCoroutineContext().ensureActive()
                 state(task.id, TaskStatus.DOWNLOADING)
                 val image = File(dir, "slide-$index-image")
@@ -261,8 +265,8 @@ class DownloadService : Service() {
         }
         val summary = when(task.albumContent) {
             AlbumContent.MUSIC -> "配乐已保存"
-            AlbumContent.IMAGES -> "${info.images.size} 张内容已保存"
-            AlbumContent.ALL -> "${info.images.size} 张内容已保存${if(info.music != null) "，配乐单独保存" else ""}"
+            AlbumContent.IMAGES -> "${imageIndices.size} 张内容已保存"
+            AlbumContent.ALL -> "${imageIndices.size} 张内容已保存${if(info.music != null) "，配乐单独保存" else ""}"
         }
         notifyResult(task.id, info.title, summary, published.first())
     }

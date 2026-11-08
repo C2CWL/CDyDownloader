@@ -347,6 +347,10 @@ private val paths = mapOf(
                 }
                 if(detected != null && vm.qualityLoading)
                     Text("正在解析作品信息…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                vm.resolveError?.let { message ->
+                    Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { vm.retryResolve(detected) }, modifier = Modifier.testTag("retryResolve")) { Text("重试解析") }
+                }
                 vm.qualityCatalog?.let { catalog ->
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("画质", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -366,7 +370,16 @@ private val paths = mapOf(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 TextButton(onClick = { vm.inputVisible = false }) { Text("取消") }
-                Button(onClick = submit, enabled = vm.input.isNotBlank(), shape = RoundedCornerShape(12.dp)) { Text("下载") }
+                Button(onClick = submit, enabled = vm.isResolved(detected) && !vm.qualityLoading,
+                    shape = RoundedCornerShape(12.dp), modifier = Modifier.testTag("resolveThenDownload")) {
+                    Text(when {
+                        detected == null -> "下载"
+                        vm.qualityLoading -> "正在解析…"
+                        vm.isResolved(detected) && vm.preview?.isAlbum == true -> "下载所选（${vm.selectedAlbumImages.size}）"
+                        vm.isResolved(detected) -> "下载"
+                        else -> "解析中…"
+                    })
+                }
             }
         }
     }

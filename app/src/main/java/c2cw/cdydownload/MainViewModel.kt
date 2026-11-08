@@ -95,6 +95,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** The resolved work, shown on the home page before anything is queued. */
     var preview by mutableStateOf<MediaPreview?>(null)
         private set
+    internal var resolvedInfo by mutableStateOf<VideoInfo?>(null)
+        private set
+    var selectedAlbumImages by mutableStateOf<Set<Int>>(emptySet())
+        private set
+    var resolveError by mutableStateOf<String?>(null)
+        private set
     var qualityLoading by mutableStateOf(false)
         private set
     private var qualityJob: Job? = null
@@ -107,6 +113,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         qualityCatalog = null
         qualityChosen = null
         preview = null
+        resolvedInfo = null
+        selectedAlbumImages = emptySet()
+        resolveError = null
         qualityLoading = link != null
         if(link == null) return
         val key = link.key
@@ -114,13 +123,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val info = VideoResolver().resolve(link)
                 val specs = info.specifications
-                if(qualityKey == key) preview = info.toPreview()
+                if(qualityKey == key) {
+                    resolvedInfo = info
+                    preview = info.toPreview()
+                    selectedAlbumImages = info.images.indices.toSet()
+                }
                 if(info.images.isEmpty() && specs != null && specs.videos.size > 1) qualityCatalog = specs
             } catch(e: CancellationException) { throw e }
-            catch(_: Exception) { }
+            catch(e: Exception) {
+                if(qualityKey == key) resolveError = "解析失败：${e.message?.take(120)?.ifBlank { null } ?: "请检查链接后重试"}"
+            }
             if(qualityKey == key) qualityLoading = false
         }
     }
+    fun retryResolve(link: VideoLink?) {
+        if(link == null) return
+        qualityKey = null
+        prepareQuality(link)
+    }
+    fun toggleAlbumImage(index: Int) {
+        val count = resolvedInfo?.images?.size ?: return
+        if(index !in 0 until count) return
+        selectedAlbumImages = if(index in selectedAlbumImages) selectedAlbumImages - index else selectedAlbumImages + index
+    }
+    fun selectAllAlbumImages() {
+        selectedAlbumImages = resolvedInfo?.images?.indices?.toSet().orEmpty()
+    }
+    fun clearAlbumImageSelection() { selectedAlbumImages = emptySet() }
+    internal fun isResolved(link: VideoLink?) = link != null && qualityKey == link.key && resolvedInfo != null
     private fun chosenQuality(): TrackSelection? {
         val catalog = qualityCatalog ?: return null
         val chosen = qualityChosen ?: return null
@@ -162,7 +192,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun submit(): Boolean {
         val link = Links.detect(input)
         if(link == null) { error = "请粘贴 B 站、抖音、YouTube、微博或微信视频号链接，也支持分享文案、BV / AV 号和 YouTube 视频 ID"; return false }
-        val task = enqueue(link, selection = chosenQuality())
+        val info = resolvedInfo?.takeIf { qualityKey == link.key }
+        if(info == null) { error = resolveError ?: "请等待作品解析完成"; return false }
+        val album = info.images.isNotEmpty()
+        val selected = if(album && albumContent != AlbumContent.MUSIC) selectedAlbumImages.sorted() else null
+        if(album && albumContent == AlbumContent.MUSIC && info.music.isNullOrBlank()) {
+            error = "此图集没有可单独保存的配乐"; return false
+        }
+        if(album && albumContent != AlbumContent.MUSIC && selected.isNullOrEmpty()) {
+            error = "请至少选择一张图片"; return false
+        }
+        val task = enqueue(link, info = info.takeIf { album }, selection = chosenQuality(), albumImageIndices = selected)
+        if(album) context.prepareDownload(task.id, info)
         if(!start(task.id)) { error = store.get(task.id)?.error; return false }
         inputVisible = false; tab = 1; settings = false
         prepareQuality(null)
@@ -178,8 +219,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         tab=1; settings=false
         return start(task.id)
     }
-    private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null): DownloadTask {
-        val task = store.add(link, selection = selection, albumContent = albumContent)
+    private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null,
+        albumImageIndices: List<Int>? = null): DownloadTask {
+        val task = store.add(link, selection = selection, albumContent = albumContent, albumImageIndices = albumImageIndices)
         if(info != null) store.update(task.id) {
             it.copy(title = info.title, quality = info.quality, resolution = info.resolution)
         }
