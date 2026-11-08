@@ -29,6 +29,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     var clipboardEnabled by mutableStateOf(prefs.getBoolean("clipboard", true))
         private set
+    var saveFolder by mutableStateOf(sanitizedSaveFolder(prefs.getString(SAVE_FOLDER, DEFAULT_SAVE_FOLDER)))
+        private set
+    fun changeSaveFolder(name: String) {
+        saveFolder = sanitizedSaveFolder(name)
+        prefs.edit().putString(SAVE_FOLDER, saveFolder).apply()
+    }
     private val gate = PromptGate(prefs.getStringSet("handled", emptySet()).orEmpty().toMutableSet())
     private var selectedTab by mutableIntStateOf(0)
     var requestedTab by mutableIntStateOf(0)

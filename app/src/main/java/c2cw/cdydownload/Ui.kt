@@ -560,7 +560,7 @@ private val paths = mapOf(
         Surface(shape = RoundedCornerShape(22.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("在其他应用中添加下载", style = MaterialTheme.typography.titleMedium)
-                Text("系统不允许后台读取剪贴板。在视频应用中选择「分享 → 更多 → 逗逼下载器」，确认后即可下载。",
+                Text("系统不允许后台读取剪贴板。在视频应用中选择「分享 → 更多 → CDy下载器」，确认后即可下载。",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -575,14 +575,32 @@ private val paths = mapOf(
                 Glyph("arrow")
             }
         }
-        Surface(shape = RoundedCornerShape(22.dp)) {
-            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("保存位置", style = MaterialTheme.typography.titleMedium)
-                Text("视频：Movies / 逗逼下载器\n图片：Pictures / 逗逼下载器", style = MaterialTheme.typography.bodyLarge)
-                Text("视频和图片保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音图集按原始素材保存，图片与配乐分开下载。",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        SaveLocationCard(vm)
         c2cw.cdydownload.update.AboutUpdateCard()
     }
+}
+
+@Composable private fun SaveLocationCard(vm: MainViewModel) {
+    var editing by remember { mutableStateOf(false) }
+    var draft by remember { mutableStateOf(vm.saveFolder) }
+    Surface(shape = RoundedCornerShape(22.dp), onClick = { draft = vm.saveFolder; editing = true }) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("保存位置", style = MaterialTheme.typography.titleMedium)
+                    Text("视频：Movies / ${vm.saveFolder}\n图片：Pictures / ${vm.saveFolder}\n配乐：Music / ${vm.saveFolder}",
+                        style = MaterialTheme.typography.bodyLarge)
+                }
+                Glyph("arrow")
+            }
+            Text("视频和图片保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音图集按原始素材保存，图片与配乐分开下载。",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    if(editing) AlertDialog(onDismissRequest = { editing = false },
+        title = { Text("保存子目录") },
+        text = { OutlinedTextField(value = draft, onValueChange = { draft = it.take(40) }, singleLine = true,
+            placeholder = { Text(DEFAULT_SAVE_FOLDER) }, modifier = Modifier.testTag("saveFolderInput")) },
+        confirmButton = { Button(onClick = { vm.changeSaveFolder(draft); editing = false }) { Text("保存") } },
+        dismissButton = { TextButton(onClick = { editing = false }) { Text("取消") } })
 }

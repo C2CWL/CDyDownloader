@@ -53,6 +53,7 @@ class DownloadService : Service() {
     private val sizeClient = transferClient.newBuilder().callTimeout(8, TimeUnit.SECONDS).retryOnConnectionFailure(false).build()
     private val sizeProbeSlots = Semaphore(4)
     private val notifications get() = getSystemService(NotificationManager::class.java)
+    private val saveFolder get() = sanitizedSaveFolder(getSharedPreferences("settings", 0).getString(SAVE_FOLDER, DEFAULT_SAVE_FOLDER))
 
     override fun onCreate() {
         super.onCreate()
@@ -183,7 +184,7 @@ class DownloadService : Service() {
         val measuredFps = savedFrameRate(this@DownloadService,uri.toString())
         store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
             resolution = measured.ifBlank { it.resolution }, fps = measuredFps.takeIf { it > 0 } ?: it.fps, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
-        notifyResult(task.id, info.title, "已保存到 Movies/逗逼下载器", uri)
+        notifyResult(task.id, info.title, "已保存到 Movies/$saveFolder", uri)
     }
 
     private suspend fun downloadAlbum(task: DownloadTask, info: VideoInfo, dir: File, progress: TaskTransferProgress) {
@@ -371,7 +372,7 @@ class DownloadService : Service() {
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, "$clean-${id.take(12)}${if(motion) "_MP" else ""}.$extension")
             put(MediaStore.Video.Media.MIME_TYPE, mime)
-            put(MediaStore.Video.Media.RELATIVE_PATH, "${if(image) Environment.DIRECTORY_PICTURES else if(audio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_MOVIES}/逗逼下载器")
+            put(MediaStore.Video.Media.RELATIVE_PATH, "${if(image) Environment.DIRECTORY_PICTURES else if(audio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_MOVIES}/$saveFolder")
             put(MediaStore.Video.Media.IS_PENDING, 1)
             if(image && takenAt != null) put(MediaStore.Images.Media.DATE_TAKEN, takenAt)
         }
