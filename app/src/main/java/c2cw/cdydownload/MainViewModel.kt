@@ -100,7 +100,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun openInput(text: String = "") {
         clipboard.clear()
-        input = text.take(16000); error = null; inputVisible = true
+        // The input card is laid out on the home page, so opening it must land there.
+        input = text.take(16000); error = null; inputVisible = true; if(!settings) tab = 0
     }
     fun onShare(text: String) {
         settings = false

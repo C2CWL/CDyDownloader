@@ -197,7 +197,7 @@ private val paths = mapOf(
                         Column(Modifier.fillMaxWidth().height(60.dp)) {
                             HomeMessageCarousel(vm.homeMessages, pager.currentPage == 0 && !vm.inputVisible)
                         }
-                        Surface(onClick = { vm.openInput() }, modifier = Modifier.widthIn(max = 540.dp).fillMaxWidth().height(66.dp),
+                        if(vm.inputVisible) LinkInputCard(vm) { if(vm.submit()) requestNotifications() } else Surface(onClick = { vm.openInput() }, modifier = Modifier.widthIn(max = 540.dp).fillMaxWidth().height(66.dp),
                             shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface,
                             shadowElevation = 2.dp) {
                             Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically,
@@ -252,72 +252,63 @@ private val paths = mapOf(
             ClipboardSuggestionOverlay(vm, haze, requestNotifications)
         }
     }
-    if(vm.inputVisible) LinkDialog(vm) { if(vm.submit()) requestNotifications() }
     DeleteTasksDialog(vm)
     SpecificationDialog(vm.specificationEditor)
     c2cw.cdydownload.update.UpdateOverlay(updateManager, updateHaze)
 }
 
 
-@Composable private fun LinkDialog(vm: MainViewModel, submit: () -> Unit) {
+@Composable private fun LinkInputCard(vm: MainViewModel, submit: () -> Unit) {
     val context = LocalContext.current
     val detected = remember(vm.input) { Links.detect(vm.input) }
     val focus = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
     var candidate by remember { mutableStateOf<String?>(null) }
     var inspected by remember { mutableStateOf<ClipboardContent?>(null) }
-    Dialog(onDismissRequest = { vm.inputVisible = false }, properties = DialogProperties(
-        usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        val windowFocused = LocalWindowInfo.current.isWindowFocused
-        LaunchedEffect(focused, windowFocused, vm.clipboardEnabled) {
-            if(!windowFocused || !vm.clipboardEnabled) return@LaunchedEffect
-            val content = readClipboardContent(context, excludeSensitive = true) ?: return@LaunchedEffect
-            if(content == inspected) return@LaunchedEffect
-            inspected = content
-            val text = content.text
-            val link = Links.detect(text)
-            candidate = text.takeIf { link != null && link.key != Links.detect(vm.input)?.key }
-        }
-        LaunchedEffect(Unit) { focus.requestFocus() }
-        LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
-        Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal = 24.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                Surface(shape = RoundedCornerShape(28.dp), tonalElevation = 6.dp, modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
-                    Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("添加下载", style = MaterialTheme.typography.titleLarge)
-                        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("粘贴链接或完整分享文案", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
-                                    .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
-                                placeholder = { Text("B 站 / 抖音 / YouTube / 微博链接") }, shape = RoundedCornerShape(16.dp),
-                                trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
-                                    vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
-                                }, modifier = Modifier.testTag("clearLinkInput")) { Glyph("close", "清空输入") } }} else null,
-                                isError = vm.error != null, maxLines = 5)
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(if(candidate != null) "剪贴板中有${candidate?.let(Links::detect)?.platform?.label.orEmpty()}链接" else if(detected != null) "已识别：${detected.platform.label}链接" else "自动识别视频或图集",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if(detected != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f))
-                                TextButton(onClick = {
-                                    vm.input = candidate ?: readClipboardText(context, excludeSensitive = false).orEmpty()
-                                    vm.error = null; candidate = null
-                                }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
-                            }
-                            if(detected?.platform == Platform.DOUYIN) {
-                                Text("图集按原始素材保存，图片与配乐分开下载", style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                            TextButton(onClick = { vm.inputVisible = false }) { Text("取消") }
-                            Button(onClick = submit, enabled = vm.input.isNotBlank(), shape = RoundedCornerShape(14.dp)) { Text("下载") }
-                        }
-                    }
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(focused, windowFocused, vm.clipboardEnabled) {
+        if(!windowFocused || !vm.clipboardEnabled) return@LaunchedEffect
+        val content = readClipboardContent(context, excludeSensitive = true) ?: return@LaunchedEffect
+        if(content == inspected) return@LaunchedEffect
+        inspected = content
+        val text = content.text
+        val link = Links.detect(text)
+        candidate = text.takeIf { link != null && link.key != Links.detect(vm.input)?.key }
+    }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
+    Surface(shape = RoundedCornerShape(28.dp), tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("添加下载", style = MaterialTheme.typography.titleLarge)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("粘贴链接或完整分享文案", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
+                        .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
+                    placeholder = { Text("B 站 / 抖音 / YouTube / 微博链接") }, shape = RoundedCornerShape(16.dp),
+                    trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
+                        vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
+                    }, modifier = Modifier.testTag("clearLinkInput")) { Glyph("close", "清空输入") } }} else null,
+                    isError = vm.error != null, maxLines = 5)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(if(candidate != null) "剪贴板中有${candidate?.let(Links::detect)?.platform?.label.orEmpty()}链接" else if(detected != null) "已识别：${detected.platform.label}链接" else "自动识别视频或图集",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if(detected != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f))
+                    TextButton(onClick = {
+                        vm.input = candidate ?: readClipboardText(context, excludeSensitive = false).orEmpty()
+                        vm.error = null; candidate = null
+                    }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
                 }
+                if(detected?.platform == Platform.DOUYIN) {
+                    Text("图集按原始素材保存，图片与配乐分开下载", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                TextButton(onClick = { vm.inputVisible = false }) { Text("取消") }
+                Button(onClick = submit, enabled = vm.input.isNotBlank(), shape = RoundedCornerShape(14.dp)) { Text("下载") }
             }
         }
     }
