@@ -192,9 +192,16 @@ private val paths = mapOf(
                     beyondViewportPageCount = 1, key = { it }
                 ) { page ->
                     if(page == 0) {
-                    Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset).padding(horizontal = 28.dp).padding(bottom = 120.dp),
-                        contentAlignment = Alignment.TopCenter) {
-                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(top = 20.dp)) {
+                    // While typing, rest the card on the keyboard instead of leaving the input floating near the top
+                    // with the keyboard's padding showing as a gap underneath it.
+                    val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
+                    val homeScroll = rememberScrollState()
+                    // A tall card (quality chips, album options) can still outgrow the space above the keyboard.
+                    LaunchedEffect(typing) { if(typing) { delay(150); homeScroll.scrollTo(homeScroll.maxValue) } }
+                    Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset).padding(horizontal = 28.dp)
+                            .padding(bottom = if(typing) 12.dp else 120.dp).imePadding(),
+                        contentAlignment = if(typing) Alignment.BottomCenter else Alignment.TopCenter) {
+                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().verticalScroll(homeScroll).padding(top = 20.dp)) {
                         // Reserve the carousel and its gap even before remote messages arrive.
                         Column(Modifier.fillMaxWidth().height(60.dp)) {
                             HomeMessageCarousel(vm.homeMessages, pager.currentPage == 0 && !vm.inputVisible)
