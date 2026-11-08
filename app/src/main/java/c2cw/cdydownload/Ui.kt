@@ -191,8 +191,9 @@ private val paths = mapOf(
                     beyondViewportPageCount = 1, key = { it }
                 ) { page ->
                     if(page == 0) {
-                    Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset).padding(horizontal = 28.dp).padding(bottom = 120.dp), contentAlignment = Alignment.Center) {
-                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().imePadding()) {
+                    Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset).padding(horizontal = 28.dp).padding(bottom = 120.dp),
+                        contentAlignment = if(vm.inputVisible) Alignment.TopCenter else Alignment.Center) {
+                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState())) {
                         // Reserve the carousel and its gap even before remote messages arrive.
                         Column(Modifier.fillMaxWidth().height(60.dp)) {
                             HomeMessageCarousel(vm.homeMessages, pager.currentPage == 0 && !vm.inputVisible)
@@ -301,8 +302,19 @@ private val paths = mapOf(
                     }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
                 }
                 if(detected?.platform == Platform.DOUYIN) {
-                    Text("图集按原始素材保存，图片与配乐分开下载", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("图集保存内容", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AlbumContent.entries.forEach { content ->
+                                FilterChip(selected = vm.albumContent == content,
+                                    onClick = { vm.albumContent = content }, label = { Text(content.label) },
+                                    shape = CircleShape, modifier = Modifier.testTag("album-${content.name}"))
+                            }
+                        }
+                        Text("视频不受影响，图集按所选内容保存。", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
             }

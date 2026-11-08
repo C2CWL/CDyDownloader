@@ -79,6 +79,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var settings by mutableStateOf(false)
     var inputVisible by mutableStateOf(false)
     var input by mutableStateOf("")
+    /** Chosen before the download starts; only album works use it. */
+    var albumContent by mutableStateOf(AlbumContent.ALL)
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     internal val clipboard = ClipboardSuggestions(viewModelScope, { VideoResolver().resolve(it) }, gate::shouldShow, ::rememberHandled)
@@ -127,7 +129,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         return start(task.id)
     }
     private fun enqueue(link: VideoLink, info: VideoInfo? = null): DownloadTask {
-        val task = store.add(link)
+        val task = store.add(link, albumContent = albumContent)
         if(info != null) store.update(task.id) {
             it.copy(title = info.title, quality = info.quality, resolution = info.resolution)
         }
