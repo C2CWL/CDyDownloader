@@ -4,12 +4,12 @@ plugins {
 }
 android {
     namespace = "c2cw.cdydownload"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "c2cw.cdydownload"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 100
         versionName = "1.0"

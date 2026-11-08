@@ -21,12 +21,15 @@ jobs:
           java-version: '21'
       - name: Install SDK packages
         run: |
-          SDKMANAGER=$(ls $ANDROID_SDK_ROOT/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -1)
-          echo "sdkmanager: $SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
-          "$SDKMANAGER" --install "platforms;android-36" > /dev/null
-          "$SDKMANAGER" --install "build-tools;37.0.0" > /dev/null 2>&1 || \
-          "$SDKMANAGER" --install "build-tools;36.0.0" > /dev/null 2>&1 || true
+          S=$(ls $ANDROID_SDK_ROOT/cmdline-tools/*/bin/sdkmanager | head -1)
+          echo "sdkmanager: $S"
+          yes | "$S" --licenses > /dev/null 2>&1 || true
+          "$S" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+          echo '--- platforms ---'; ls "$ANDROID_SDK_ROOT/platforms"
+          if [ ! -d "$ANDROID_SDK_ROOT/platforms/android-37" ] && [ -d "$ANDROID_SDK_ROOT/platforms/android-37.0" ]; then
+            ln -s "$ANDROID_SDK_ROOT/platforms/android-37.0" "$ANDROID_SDK_ROOT/platforms/android-37"
+            echo 'symlinked android-37 -> android-37.0'
+          fi
       - uses: gradle/actions/setup-gradle@v4
       - name: Build release APK
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
