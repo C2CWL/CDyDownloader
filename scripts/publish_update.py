@@ -153,7 +153,9 @@ def main():
         return
     repository = os.environ["UPDATE_REPOSITORY"]
     tag = os.environ["UPDATE_TAG"]
-    if repository != "daxiaamu/DBdown":
+    # The fork publishes its own releases; the guard only keeps foreign repositories from
+    # generating metadata against someone else's build.
+    if repository != "C2CWL/DBdown":
         raise ValueError("Workflow must run in the configured update repository")
     branch = os.environ.get("UPDATE_BRANCH", "main")
     release = json.loads(fetch(f"https://api.github.com/repos/{repository}/releases/tags/{urllib.parse.quote(tag, safe='')}")[0])
@@ -181,7 +183,7 @@ def main():
         tools = sdk / "build-tools" / "36.0.0"
         output = subprocess.check_output([str(tools / "aapt2"), "dump", "badging", str(apk)], text=True)
         match = re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'", output)
-        if not match or match[1] != "com.daxiaamu.dbdown":
+        if not match or match[1] != "c2cw.cdydownload":
             raise ValueError("Unexpected APK identity")
         code, name = int(match[2]), match[3]
         subprocess.run([str(tools / "apksigner"), "verify", str(apk)], check=True)
