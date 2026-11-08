@@ -17,7 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     var confirmClear by remember { mutableStateOf(false) }
     var clearing by remember { mutableStateOf(false) }
     Text("平台账号", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Surface(shape = RoundedCornerShape(22.dp)) {
+    Surface(shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Platform.accountPlatforms.forEach { platform ->
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

@@ -76,7 +76,7 @@ internal data class HomeMessages(val enabled: Boolean, val intervalSeconds: Int,
                         delay(config.intervalSeconds * 1000L)
                         if(!pager.isScrollInProgress) {
                             pager.animateScrollToPage(pager.settledPage + 1,
-                                animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing))
+                                animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing))
                         }
                     }
                 }

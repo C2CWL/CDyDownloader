@@ -41,7 +41,7 @@ import java.util.Locale
     val manager = (context.applicationContext as DownloaderApp).updates
     val state by manager.state.collectAsStateWithLifecycle()
     Text("关于", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Surface(shape = RoundedCornerShape(22.dp), modifier = Modifier.testTag("aboutUpdate")) {
+    Surface(shape = RoundedCornerShape(16.dp), modifier = Modifier.testTag("aboutUpdate")) {
         Column {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -102,7 +102,7 @@ import java.util.Locale
         properties = DialogProperties(dismissOnBackPress = dismissible, dismissOnClickOutside = dismissible,
             usePlatformDefaultWidth = false)) {
         GlassPrompt(haze, Modifier.padding(horizontal = 16.dp).widthIn(max = 520.dp).fillMaxWidth().testTag("updateDialog"),
-            shape = RoundedCornerShape(28.dp)) {
+            shape = RoundedCornerShape(20.dp)) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
             Column(Modifier.padding(20.dp)) {
                 SelectionContainer(Modifier.fillMaxWidth().height((screenHeight * .50f).coerceAtMost(440.dp))) {

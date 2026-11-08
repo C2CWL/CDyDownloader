@@ -14,17 +14,21 @@ import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -70,23 +74,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private val Day = lightColorScheme(
-    primary = Color(0xFF315CDE), onPrimary = Color.White, primaryContainer = Color(0xFFE9EEFF),
-    onPrimaryContainer = Color(0xFF2245AD), background = Color(0xFFF7F8FA),
-    surface = Color.White, surfaceContainer = Color(0xFFEEF0F5),
-    onSurface = Color(0xFF202631), onSurfaceVariant = Color(0xFF646E7F),
-    outlineVariant = Color(0xFFE2E6EE), error = Color(0xFFB93840)
+    primary = Color(0xFFFF6900), onPrimary = Color.White, primaryContainer = Color(0xFFFFEBDD),
+    onPrimaryContainer = Color(0xFF9D3D00), background = Color(0xFFF5F5F5),
+    surface = Color.White, surfaceContainer = Color(0xFFEEEEEE),
+    onSurface = Color(0xFF1D1D1F), onSurfaceVariant = Color(0xFF666666),
+    outlineVariant = Color(0xFFDADADA), error = Color(0xFFB93840)
 )
 private val Night = darkColorScheme(
-    primary = Color(0xFFB4C5FF), onPrimary = Color(0xFF163787), primaryContainer = Color(0xFF253B73),
-    onPrimaryContainer = Color(0xFFDCE4FF), background = Color(0xFF11151D),
-    surface = Color(0xFF1C222D), surfaceContainer = Color(0xFF252C39),
-    onSurface = Color(0xFFE5E9F1), onSurfaceVariant = Color(0xFFA7B0C1),
-    outlineVariant = Color(0xFF343F50), error = Color(0xFFFFB3B8)
+    primary = Color(0xFFFF9A52), onPrimary = Color(0xFF351500), primaryContainer = Color(0xFF653000),
+    onPrimaryContainer = Color(0xFFFFE0CC), background = Color(0xFF111111),
+    surface = Color(0xFF1C1C1C), surfaceContainer = Color(0xFF252525),
+    onSurface = Color(0xFFF1F1F1), onSurfaceVariant = Color(0xFFB0B0B0),
+    outlineVariant = Color(0xFF393939), error = Color(0xFFFFB3B8)
 )
 @Composable fun DownloaderTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if(isSystemInDarkTheme()) Night else Day, typography = Typography(
-        headlineMedium = androidx.compose.ui.text.TextStyle(fontSize = 27.sp, fontWeight = FontWeight.SemiBold),
-        titleLarge = androidx.compose.ui.text.TextStyle(fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
+        headlineMedium = androidx.compose.ui.text.TextStyle(fontSize = 27.sp, fontWeight = FontWeight.Bold),
+        titleLarge = androidx.compose.ui.text.TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
         titleMedium = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
         bodyLarge = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
         bodyMedium = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
@@ -140,7 +144,7 @@ private val paths = mapOf(
 )
 
 @Composable internal fun GlassPrompt(haze: HazeState, modifier: Modifier = Modifier,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp), content: @Composable () -> Unit) {
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(18.dp), content: @Composable () -> Unit) {
     Box(modifier.shadow(4.dp, shape).clip(shape)) {
         // Blur only the backdrop. Drawing Surface elevation after haze creates a shadow inside the glass.
         Box(Modifier.matchParentSize().hazeEffect(haze, style = appGlassStyle()))
@@ -204,14 +208,30 @@ private val paths = mapOf(
                         Column(Modifier.fillMaxWidth().height(60.dp)) {
                             HomeMessageCarousel(vm.homeMessages, pager.currentPage == 0 && !vm.inputVisible)
                         }
-                        if(vm.inputVisible) LinkInputCard(vm) { if(vm.submit()) requestNotifications() } else Surface(onClick = { vm.openInput() }, modifier = Modifier.widthIn(max = 540.dp).fillMaxWidth().height(66.dp),
-                            shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface,
-                            shadowElevation = 2.dp) {
-                            Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Glyph("link", tint = MaterialTheme.colorScheme.primary)
-                                Text("粘贴视频链接", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                HomePasteButton(pager.currentPage == 0 && !vm.inputVisible, vm::openInput)
+                        AnimatedContent(
+                            targetState = vm.inputVisible,
+                            modifier = Modifier.widthIn(max = 540.dp).fillMaxWidth(),
+                            transitionSpec = {
+                                if(targetState) {
+                                    (fadeIn(tween(150)) + slideInVertically(tween(180)) { it / 18 }) togetherWith
+                                        fadeOut(tween(110))
+                                } else {
+                                    fadeIn(tween(130)) togetherWith
+                                        (fadeOut(tween(100)) + slideOutVertically(tween(120)) { it / 20 })
+                                }
+                            },
+                            label = "homeInputCard"
+                        ) { inputVisible ->
+                            if(inputVisible) LinkInputCard(vm) { if(vm.submit()) requestNotifications() }
+                            else Surface(onClick = { vm.openInput() }, modifier = Modifier.fillMaxWidth().height(66.dp),
+                                shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 0.dp) {
+                                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    Glyph("link", tint = MaterialTheme.colorScheme.primary)
+                                    Text("粘贴视频链接", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                                    HomePasteButton(pager.currentPage == 0 && !inputVisible, vm::openInput)
+                                }
                             }
                         }
                         }
@@ -285,15 +305,17 @@ private val paths = mapOf(
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
-    Surface(shape = RoundedCornerShape(28.dp), tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth().animateContentSize(animationSpec = tween(220, easing = FastOutSlowInEasing))) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("添加下载", style = MaterialTheme.typography.titleLarge)
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("粘贴链接或完整分享文案", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
                         .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
-                    placeholder = { Text("B 站 / 抖音 / YouTube / 微博链接") }, shape = RoundedCornerShape(16.dp),
+                    placeholder = { Text("B 站 / 抖音 / YouTube / 微博链接") }, shape = RoundedCornerShape(12.dp),
                     trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
                         vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
                     }, modifier = Modifier.testTag("clearLinkInput")) { Glyph("close", "清空输入") } }} else null,
@@ -344,7 +366,7 @@ private val paths = mapOf(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 TextButton(onClick = { vm.inputVisible = false }) { Text("取消") }
-                Button(onClick = submit, enabled = vm.input.isNotBlank(), shape = RoundedCornerShape(14.dp)) { Text("下载") }
+                Button(onClick = submit, enabled = vm.input.isNotBlank(), shape = RoundedCornerShape(12.dp)) { Text("下载") }
             }
         }
     }
@@ -379,7 +401,7 @@ private val paths = mapOf(
         if(filtered.isEmpty()) { item(key = "empty") {
             Column(Modifier.fillParentMaxHeight(0.65f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center) {
-                Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
                     Box(Modifier.size(76.dp), contentAlignment = Alignment.Center) {
                         Glyph("download", modifier = Modifier.size(30.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -410,8 +432,10 @@ private val paths = mapOf(
             }
         }
     }
-    Surface(modifier = Modifier.testTag("download-${task.id}"), shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Surface(modifier = Modifier.testTag("download-${task.id}"), shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
@@ -542,7 +566,7 @@ private val paths = mapOf(
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = topInset).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Text("下载", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(onClick = { selectParallelism = true }, shape = RoundedCornerShape(22.dp),
+        Surface(onClick = { selectParallelism = true }, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.testTag("parallelismSetting")) {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -554,7 +578,7 @@ private val paths = mapOf(
                 Glyph("arrow")
             }
         }
-        Surface(shape = RoundedCornerShape(22.dp)) {
+        Surface(shape = RoundedCornerShape(16.dp)) {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("将下载时间设为图片拍摄时间", style = MaterialTheme.typography.titleMedium)
@@ -566,7 +590,7 @@ private val paths = mapOf(
         }
         AccountSettings()
         Text("链接与提醒", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(shape = RoundedCornerShape(22.dp)) {
+        Surface(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -581,7 +605,7 @@ private val paths = mapOf(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Surface(shape = RoundedCornerShape(22.dp)) {
+        Surface(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("在其他应用中添加下载", style = MaterialTheme.typography.titleMedium)
                 Text("系统不允许后台读取剪贴板。在视频应用中选择「分享 → 更多 → CDy下载器」，确认后即可下载。",
@@ -590,7 +614,7 @@ private val paths = mapOf(
         }
         Surface(onClick = {
             context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
-        }, shape = RoundedCornerShape(22.dp)) {
+        }, shape = RoundedCornerShape(16.dp)) {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("下载通知", style = MaterialTheme.typography.titleMedium)
@@ -607,7 +631,7 @@ private val paths = mapOf(
 @Composable private fun SaveLocationCard(vm: MainViewModel) {
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(vm.saveFolder) }
-    Surface(shape = RoundedCornerShape(22.dp), onClick = { draft = vm.saveFolder; editing = true }) {
+    Surface(shape = RoundedCornerShape(16.dp), onClick = { draft = vm.saveFolder; editing = true }) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
