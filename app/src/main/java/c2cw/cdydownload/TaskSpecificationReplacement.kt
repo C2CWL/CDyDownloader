@@ -7,8 +7,8 @@ internal class FileReplacementConfirmation : IllegalStateException()
 
 /** Stop and join the old worker before deleting files or scheduling the replacement. */
 internal suspend fun replaceTaskSpecification(store: DownloadStore, id: String, info: VideoInfo,
-    selection: TrackSelection, deleteConfirmed: Boolean, stop: suspend (List<String>) -> Unit,
-    deleteFile: (String) -> Unit): DownloadTask {
+    selection: TrackSelection?, albumContent: AlbumContent = AlbumContent.ALL, deleteConfirmed: Boolean,
+    stop: suspend (List<String>) -> Unit, deleteFile: (String) -> Unit): DownloadTask {
     fun outputs(task: DownloadTask) = (task.outputUris + task.uri).filter(String::isNotBlank).distinct()
     val original = store.get(id) ?: error("任务已删除")
     if((original.status == TaskStatus.COMPLETED || outputs(original).isNotEmpty()) && !deleteConfirmed)
@@ -23,7 +23,7 @@ internal suspend fun replaceTaskSpecification(store: DownloadStore, id: String, 
         outputs(stopped).forEach(deleteFile)
         store.remove(id)
     }
-    val task = store.add(info.source,selection=selection)
+    val task = store.add(info.source,selection=selection,albumContent=albumContent)
     store.update(task.id) { it.copy(title=info.title,quality=info.quality,resolution=info.resolution,fps=info.fps) }
     return store.get(task.id)!!
 }

@@ -433,13 +433,14 @@ private val paths = mapOf(
             } else Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     val isVideo = !task.mimeType.startsWith("image/") && !task.quality.contains("张图片")
-                    Row(Modifier.then(if(isVideo) Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled=!vm.deleting) {
+                    val pickable = isVideo || task.quality.contains("张图片") || task.albumContent != AlbumContent.ALL
+                    Row(Modifier.then(if(pickable) Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled=!vm.deleting) {
                         vm.specificationEditor.open(task.id)
                     }.testTag("specification-${task.id}") else Modifier).padding(vertical=4.dp),verticalAlignment=Alignment.CenterVertically) {
-                        Text(if(isVideo) videoSpecification(task.resolution.ifBlank { task.quality.takeIf { it.matches(Regex("[0-9]+P")) }.orEmpty() },task.fps) else task.resolution.ifBlank { "—" },
+                        Text(if(isVideo) videoSpecification(task.resolution.ifBlank { task.quality.takeIf { it.matches(Regex("[0-9]+P")) }.orEmpty() },task.fps) else task.quality.substringAfter(" · ",task.resolution.ifBlank { "—" }),
                             style=MaterialTheme.typography.labelLarge,maxLines=1,overflow=TextOverflow.Ellipsis,
                             modifier=Modifier.weight(1f,fill=false),color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        if(isVideo) Glyph("expand",modifier=Modifier.padding(start=4.dp).size(14.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
+                        if(pickable) Glyph("expand",modifier=Modifier.padding(start=4.dp).size(14.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if(task.status == TaskStatus.DOWNLOADING) {
                         Text(buildAnnotatedString {

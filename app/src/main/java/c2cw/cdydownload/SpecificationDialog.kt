@@ -1,6 +1,7 @@
 package c2cw.cdydownload
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -8,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -16,13 +18,30 @@ import androidx.compose.ui.window.Dialog
     val state=editor.state ?: return
     val catalog=state.catalog
     val video=catalog?.videos?.find { it.id == state.selection?.video }
-    val valid=video != null
+    val album = state.albumContent != null && catalog == null
+    val valid = if(album) state.albumContent != null && state.albumHasMusic || state.albumContent == AlbumContent.IMAGES else video != null
     AlertDialog(onDismissRequest=editor::dismiss,shape=RoundedCornerShape(28.dp),
         title={ Text("下载规格") }, text={
             Column(verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 if(state.loading) {
                     AppProgressBar(Modifier.fillMaxWidth())
                     Text("正在获取可用的视频和音频规格…")
+                }
+                if(album && !state.loading) {
+                    val options = AlbumContent.entries.filter { it != AlbumContent.MUSIC || state.albumHasMusic }
+                    Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                        Text("保存内容",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        options.forEach { content ->
+                            Row(Modifier.fillMaxWidth().selectable(selected=state.albumContent==content,
+                                    enabled=!state.applying,role=Role.RadioButton,onClick={ editor.album(content) }),
+                                verticalAlignment=Alignment.CenterVertically) {
+                                RadioButton(selected=state.albumContent==content,onClick=null)
+                                Text(content.label,style=MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                    Text("确定后将停止当前任务，按所选内容重新下载。",style=MaterialTheme.typography.bodySmall,
+                        color=MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if(catalog != null) {
                     TrackPicker("视频",catalog.videos,state.selection?.video,!state.applying,editor::video)
@@ -47,7 +66,7 @@ import androidx.compose.ui.window.Dialog
                 }
             }
         },confirmButton={
-            if(catalog == null && !state.loading) TextButton(onClick={ editor.open(state.taskId) }) { Text("重试") }
+            if(!album && catalog == null && !state.loading) TextButton(onClick={ editor.open(state.taskId) }) { Text("重试") }
             else Button(onClick={ editor.confirm() },enabled=valid && !state.loading && !state.applying,
                 modifier=Modifier.testTag("confirmSpecification")) { Text("确定") }
         },dismissButton={ TextButton(onClick=editor::dismiss,enabled=!state.applying) { Text("取消") } })

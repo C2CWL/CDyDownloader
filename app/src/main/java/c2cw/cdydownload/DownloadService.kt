@@ -190,7 +190,7 @@ class DownloadService : Service() {
         val useDownloadTime = getSharedPreferences("settings", 0).getBoolean(IMAGE_DOWNLOAD_TIME, false)
         val published = mutableListOf<Uri>()
         try {
-            for((index, url) in info.images.withIndex()) {
+            if(task.albumContent != AlbumContent.MUSIC) for((index, url) in info.images.withIndex()) {
                 currentCoroutineContext().ensureActive()
                 state(task.id, TaskStatus.DOWNLOADING)
                 val image = File(dir, "slide-$index-image")
@@ -232,7 +232,7 @@ class DownloadService : Service() {
                 state(task.id, TaskStatus.SAVING)
                 published += publish(output, info.title, "${task.id.take(8)}-${index + 1}", mime, extension, image = true, motion = motion != null, takenAt = takenAt)
             }
-            info.music?.let { url ->
+            if(task.albumContent != AlbumContent.IMAGES) info.music?.let { url ->
                 state(task.id, TaskStatus.DOWNLOADING)
                 val audio = File(dir, "slides-music")
                 download(url, audio, info, task.id, progress, "music")
@@ -258,7 +258,12 @@ class DownloadService : Service() {
             published.forEach { runCatching { contentResolver.delete(it, null, null) } }
             throw e
         }
-        notifyResult(task.id, info.title, "${info.images.size} 张内容已保存${if(info.music != null) "，配乐单独保存" else ""}", published.first())
+        val summary = when(task.albumContent) {
+            AlbumContent.MUSIC -> "配乐已保存"
+            AlbumContent.IMAGES -> "${info.images.size} 张内容已保存"
+            AlbumContent.ALL -> "${info.images.size} 张内容已保存${if(info.music != null) "，配乐单独保存" else ""}"
+        }
+        notifyResult(task.id, info.title, summary, published.first())
     }
     private suspend fun state(id: String, status: TaskStatus) {
         currentCoroutineContext().ensureActive()
