@@ -25,6 +25,7 @@ class LoginActivity : ComponentActivity() {
     private val platform by lazy { Platform.accountPlatforms.firstOrNull { it.name == intent.getStringExtra("platform") } ?: Platform.BILI }
     private var enteredSignedIn = false
     private val startUrl get() = when(platform) {
+        Platform.XIAOHONGSHU -> "https://www.xiaohongshu.com/"
         Platform.WECHAT -> "https://yuanbao.tencent.com/"
         Platform.WEIBO -> if(enteredSignedIn) "https://m.weibo.cn/"
             else "https://passport.weibo.cn/signin/login?entry=mweibo&r=https%3A%2F%2Fm.weibo.cn%2F"

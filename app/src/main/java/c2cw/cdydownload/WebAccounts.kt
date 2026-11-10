@@ -42,6 +42,7 @@ object WebAccounts {
         refresh()
     }
     private fun url(platform: Platform) = when(platform) {
+        Platform.XIAOHONGSHU -> "https://www.xiaohongshu.com/"
         Platform.WECHAT -> "https://yuanbao.tencent.com/"
         Platform.WEIBO -> "https://m.weibo.cn/"
         Platform.BILI -> "https://www.bilibili.com/"
@@ -68,6 +69,7 @@ object WebAccounts {
         }
         val names = when(platform) {
             Platform.WECHAT -> setOf("hy_token")
+            Platform.XIAOHONGSHU -> setOf("web_session")
             Platform.WEIBO -> setOf("SUB")
             Platform.BILI -> setOf("SESSDATA")
             Platform.DOUYIN -> setOf("sessionid", "sessionid_ss", "sid_guard")
@@ -96,6 +98,7 @@ object WebAccounts {
                     val wasExpired = prefs.getBoolean(platform.name + "_expired", false)
                     publish(platform, if(wasExpired) AccountStatus.EXPIRED else AccountStatus.CHECKING)
                     val endpoint = when(platform) {
+                        Platform.XIAOHONGSHU -> "https://edith.xiaohongshu.com/api/sns/web/v1/user/selfinfo"
                         Platform.WECHAT -> "https://yuanbao.tencent.com/api/getuserinfo"
                         Platform.WEIBO -> "https://m.weibo.cn/api/config"
                         Platform.BILI -> "https://api.bilibili.com/x/web-interface/nav"
@@ -172,7 +175,7 @@ object WebAccounts {
 }
 
 fun usesWebCookies(url: HttpUrl): Boolean = url.isHttps &&
-    listOf("bilibili.com", "douyin.com", "iesdouyin.com", "youtube.com", "weibo.com", "weibo.cn", "yuanbao.tencent.com", "channels.weixin.qq.com").any {
+    listOf("xiaohongshu.com", "bilibili.com", "douyin.com", "iesdouyin.com", "youtube.com", "weibo.com", "weibo.cn", "yuanbao.tencent.com", "channels.weixin.qq.com").any {
         url.host == it || url.host.endsWith(".$it")
     }
 

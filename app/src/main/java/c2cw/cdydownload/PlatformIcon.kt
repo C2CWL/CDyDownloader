@@ -24,6 +24,12 @@ import androidx.compose.ui.unit.dp
     Canvas(modifier.size(22.dp).semantics { contentDescription = platform.label }) {
         scale(size.width / 24f, size.height / 24f, pivot = Offset.Zero) {
             when(platform) {
+                Platform.XIAOHONGSHU -> {
+                    drawRoundRect(Color(0xFFFF2442), Offset(1f, 2f), Size(22f, 20f), CornerRadius(5f))
+                    drawLine(Color.White, Offset(8f, 7f), Offset(6f, 16f), 2f, StrokeCap.Round)
+                    drawLine(Color.White, Offset(12f, 6f), Offset(12f, 18f), 2f, StrokeCap.Round)
+                    drawLine(Color.White, Offset(16f, 7f), Offset(18f, 16f), 2f, StrokeCap.Round)
+                }
                 Platform.WECHAT -> {
                     val green = Color(0xFF07C160)
                     drawOval(green, Offset(1f, 3f), Size(15f, 12f))

@@ -314,7 +314,7 @@ private val paths = mapOf(
                 OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
                         .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
-                    placeholder = { Text("B 站 / 抖音 / YouTube / 微博链接") }, shape = RoundedCornerShape(12.dp),
+                    placeholder = { Text("B 站 / 抖音 / 小红书 / YouTube / 微博链接") }, shape = RoundedCornerShape(12.dp),
                     trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
                         vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
                     }, modifier = Modifier.testTag("clearLinkInput")) { Glyph("close", "清空输入") } }} else null,
@@ -423,7 +423,7 @@ private val paths = mapOf(
                 Text(when(filter) { 1 -> "没有正在下载的作品"; 2 -> "还没有下载完成的作品"; else -> "下载的作品会出现在这里" },
                     style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                Text("从 B 站、抖音、YouTube、微博或微信视频号分享视频开始", style = MaterialTheme.typography.bodyMedium,
+                Text("从 B 站、抖音、小红书、YouTube、微博或微信视频号分享作品开始", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(16.dp))
                 TextButton(onClick = { vm.openInput() }) { Text("添加链接") }
@@ -614,7 +614,7 @@ private val paths = mapOf(
                     Switch(checked = vm.clipboardEnabled, onCheckedChange = onClipboard)
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Text("仅识别 B 站、抖音、YouTube、微博和微信视频号视频，每次重新复制都会提醒，同一次复制不重复提醒。普通文本与敏感内容不会保存。", style = MaterialTheme.typography.bodyMedium,
+                Text("仅识别 B 站、抖音、小红书、YouTube、微博和微信视频号作品，每次重新复制都会提醒，同一次复制不重复提醒。普通文本与敏感内容不会保存。", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -654,7 +654,7 @@ private val paths = mapOf(
                 }
                 Glyph("arrow")
             }
-            Text("视频保存到下载目录，图片和动图保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音图集按原始素材保存，图片与配乐分开下载。",
+            Text("视频保存到下载目录，图片和动图保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音和小红书图集保留实况动态，普通动图保留原格式，图片与配乐分开下载。",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
