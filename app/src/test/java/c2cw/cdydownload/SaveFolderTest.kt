@@ -6,7 +6,7 @@ import org.junit.Test
 class SaveFolderTest {
     @Test fun eachFolderIsIndependentAndBlankMeansNoSubfolder() {
         assertEquals("", optionalSaveFolder("  "))
-        assertEquals("旅行", optionalSaveFolder(" 旅行/下一级\\ "))
+        assertEquals("旅行下一级", optionalSaveFolder(" 旅行/下一级\\ "))
         assertEquals("Download", mediaRelativePath("Download", ""))
         assertEquals("Pictures/相册", mediaRelativePath("Pictures", "相册"))
         assertEquals("Music", mediaLocationLabel("Music", ""))
