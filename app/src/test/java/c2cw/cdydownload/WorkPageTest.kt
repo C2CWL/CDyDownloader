@@ -37,7 +37,7 @@ class WorkPageTest {
         val all = albumDownloadLabel(preview, AlbumContent.ALL, listOf(0, 1), outputs)
         val imagesOnly = albumDownloadLabel(preview, AlbumContent.IMAGES, listOf(1), outputs)
         val musicOnly = albumDownloadLabel(preview, AlbumContent.MUSIC, emptyList(), outputs)
-        assertEquals("all was: $all", "下载选中（2 张，其中 1 张存实况）+ 配乐", all)
+        assertEquals("all was: $all", "下载选中（2 张，其中 1 张存实况） + 配乐", all)
         assertEquals("images was: $imagesOnly", "下载选中（1 张）", imagesOnly)
         assertEquals("music was: $musicOnly", "只下载配乐", musicOnly)
     }
