@@ -16,27 +16,33 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class HomePasteTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
-    @Test fun homePastePrefillsWithoutStartingADownloadAndDisappearsWhenClipboardClears() {
+    @Test fun linkPanelStaysVisibleWithoutAutofocusAndPasteDoesNotStartDownload() {
         val vm = ViewModelProvider(rule.activity)[MainViewModel::class.java]
         val clipboard = rule.activity.getSystemService(ClipboardManager::class.java)
         val original = clipboard.primaryClip
         val enabled = vm.clipboardEnabled
-        val text = "测试分享内容 https://b23.tv/2vBN1dt"
+        val text = "测试分享内容"
         val count = vm.store.tasks.value.size
         try {
             rule.runOnIdle {
                 vm.setClipboard(false); vm.inputVisible = false; vm.settings = false; vm.tab = 0
                 clipboard.clearPrimaryClip()
             }
-            rule.waitUntil(5000) { rule.onAllNodesWithTag("homePasteButton").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("downloadLinkInput").assertIsDisplayed().assertIsNotFocused()
+            rule.onNodeWithText("添加下载链接").assertDoesNotExist()
+            rule.onNodeWithText("收起").assertDoesNotExist()
+            rule.onNodeWithTag("resolveThenDownload").assertIsNotEnabled()
             rule.runOnIdle { clipboard.setPrimaryClip(ClipData.newPlainText("test", text)) }
-            rule.waitUntil(5000) { rule.onAllNodesWithTag("homePasteButton").fetchSemanticsNodes().isNotEmpty() }
-            screenshot("home-paste-button.png")
-            rule.onNodeWithTag("homePasteButton").performClick()
+            rule.onNodeWithTag("fillClipboardLink").performClick()
             rule.onNodeWithTag("downloadLinkInput").assertTextEquals(text)
             assertEquals(count, vm.store.tasks.value.size)
             rule.runOnIdle { vm.inputVisible = false; clipboard.clearPrimaryClip() }
-            rule.waitUntil(5000) { rule.onAllNodesWithTag("homePasteButton").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("downloadLinkInput").assertIsDisplayed().assertTextEquals(text)
+            rule.runOnIdle { vm.tab = 1 }
+            rule.waitForIdle()
+            rule.runOnIdle { vm.tab = 0 }
+            rule.onNodeWithTag("downloadLinkInput").assertIsDisplayed().assertTextEquals(text)
+            rule.onNodeWithText("收起").assertDoesNotExist()
         } finally {
             rule.runOnIdle {
                 vm.inputVisible = false

@@ -30,12 +30,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     var clipboardEnabled by mutableStateOf(prefs.getBoolean("clipboard", true))
         private set
-    var saveFolder by mutableStateOf(sanitizedSaveFolder(prefs.getString(SAVE_FOLDER, DEFAULT_SAVE_FOLDER)))
+    var saveFolderVideo by mutableStateOf(readSaveFolder(prefs, SaveKind.VIDEO))
         private set
-    fun changeSaveFolder(name: String) {
-        saveFolder = sanitizedSaveFolder(name)
-        prefs.edit().putString(SAVE_FOLDER, saveFolder).apply()
+    var saveFolderImage by mutableStateOf(readSaveFolder(prefs, SaveKind.IMAGE))
+        private set
+    var saveFolderMusic by mutableStateOf(readSaveFolder(prefs, SaveKind.MUSIC))
+        private set
+    fun changeSaveFolder(kind: SaveKind, name: String) {
+        val value = optionalSaveFolder(name)
+        when(kind) {
+            SaveKind.VIDEO -> saveFolderVideo = value
+            SaveKind.IMAGE -> saveFolderImage = value
+            SaveKind.MUSIC -> saveFolderMusic = value
+        }
+        val key = when(kind) {
+            SaveKind.VIDEO -> SAVE_FOLDER_VIDEO
+            SaveKind.IMAGE -> SAVE_FOLDER_IMAGE
+            SaveKind.MUSIC -> SAVE_FOLDER_MUSIC
+        }
+        prefs.edit().putString(key, value).apply()
     }
+    var accentMode by mutableStateOf(AccentMode.WALLPAPER)
+        private set
+    fun changeAccentMode(mode: AccentMode) {
+        accentMode = mode
+        AccentPreference.mode = mode
+        prefs.edit().putString(ACCENT_MODE, mode.name).apply()
+    }
+    init { AccentPreference.load(prefs); accentMode = AccentPreference.mode }
     var fileNameTemplate by mutableStateOf(prefs.getString(FILE_NAME_TEMPLATE, DEFAULT_FILE_NAME_TEMPLATE) ?: DEFAULT_FILE_NAME_TEMPLATE)
         private set
     fun changeFileNameTemplate(template: String) {
@@ -107,6 +129,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var selectedAlbumImages by mutableStateOf<Set<Int>>(emptySet())
         private set
+    var albumOutputs by mutableStateOf<Map<Int, AlbumOutput>>(emptyMap())
+        private set
+    fun chooseAlbumOutput(index: Int, output: AlbumOutput) {
+        if(resolvedInfo?.imageVideos?.getOrNull(index) != null) albumOutputs = albumOutputs + (index to output)
+    }
     var resolveError by mutableStateOf<String?>(null)
         private set
     var qualityLoading by mutableStateOf(false)
@@ -124,6 +151,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         preview = null
         resolvedInfo = null
         selectedAlbumImages = emptySet()
+        albumOutputs = emptyMap()
         resolveError = null
         qualityLoading = link != null
         if(link == null) return
@@ -209,9 +237,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             error = "此图集没有可单独保存的配乐"; return false
         }
         if(album && albumContent != AlbumContent.MUSIC && selected.isNullOrEmpty()) {
-            error = "请至少选择一张图片"; return false
+            error = "请至少选择一项内容"; return false
         }
-        val task = enqueue(link, info = info.takeIf { album }, selection = chosenQuality(), videoMode = videoMode, albumImageIndices = selected)
+        val task = enqueue(link, info = info.takeIf { album }, selection = chosenQuality(), videoMode = videoMode, albumImageIndices = selected, albumOutputs = albumOutputs)
         if(album) context.prepareDownload(task.id, info)
         if(!start(task.id)) { error = store.get(task.id)?.error; return false }
         inputVisible = false; tab = 1; settings = false
@@ -229,8 +257,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         return start(task.id)
     }
     private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null,
-        videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumImageIndices: List<Int>? = null): DownloadTask {
-        val task = store.add(link, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices)
+        videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumImageIndices: List<Int>? = null, albumOutputs: Map<Int, AlbumOutput> = emptyMap()): DownloadTask {
+        val task = store.add(link, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices, albumOutputs = albumOutputs)
         if(info != null) store.update(task.id) {
             it.copy(title = info.title, quality = info.quality, resolution = info.resolution)
         }

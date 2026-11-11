@@ -5,14 +5,21 @@ import java.util.Date
 import java.util.Locale
 
 internal const val FILE_NAME_TEMPLATE = "fileNameTemplate"
-internal const val DEFAULT_FILE_NAME_TEMPLATE = "{title}-{id}"
+internal const val DEFAULT_FILE_NAME_TEMPLATE = "{date}-{id}"
 
 internal val NAMING_TEMPLATE_PRESETS = listOf(
-    "{title}-{id}" to "标题-ID（默认）",
-    "{title}" to "仅标题",
-    "{author} - {title}" to "作者 - 标题",
-    "{date}_{title}" to "日期_标题",
-    "[{platform}] {author} - {title}" to "[平台] 作者 - 标题"
+    "{date}-{id}" to "日期加编号",
+    "{platform}-{id}" to "平台加编号",
+    "{author}-{date}" to "作者加日期",
+    "{id}" to "只保留编号"
+)
+
+internal val NAMING_INSERTS = listOf(
+    "{date}" to "日期",
+    "{id}" to "编号",
+    "{author}" to "作者",
+    "{platform}" to "平台",
+    "{title}" to "标题"
 )
 
 internal fun sanitizeFileNameSegment(text: String): String {

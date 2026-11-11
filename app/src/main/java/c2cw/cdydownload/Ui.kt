@@ -86,7 +86,28 @@ private val Night = darkColorScheme(
     outlineVariant = Color(0xFF393939), error = Color(0xFFFFB3B8)
 )
 @Composable fun DownloaderTheme(content: @Composable () -> Unit) {
-    val colors = if(isSystemInDarkTheme()) Night else Day
+    val context = LocalContext.current
+    val dark = isSystemInDarkTheme()
+    val base = if(dark) Night else Day
+    val colors = when(AccentPreference.mode) {
+        AccentMode.ORANGE -> base
+        AccentMode.DAILY -> {
+            val accent = dailyAccent(java.time.LocalDate.now().dayOfYear)
+            base.copy(
+                primary = Color(if(dark) accent.dark else accent.light),
+                onPrimary = Color(if(dark) accent.darkOn else accent.lightOn),
+                primaryContainer = Color(if(dark) accent.darkContainer else accent.lightContainer),
+                onPrimaryContainer = Color(if(dark) accent.dark else accent.light)
+            )
+        }
+        AccentMode.WALLPAPER -> {
+            val dynamic = if(dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            base.copy(
+                primary = dynamic.primary, onPrimary = dynamic.onPrimary,
+                primaryContainer = dynamic.primaryContainer, onPrimaryContainer = dynamic.onPrimaryContainer
+            )
+        }
+    }
     val miuixColors = if(isSystemInDarkTheme()) top.yukonga.miuix.kmp.theme.darkColorScheme(
         primary = colors.primary, onPrimary = colors.onPrimary, primaryVariant = colors.primary,
         primaryContainer = colors.primary, onPrimaryContainer = colors.onPrimary,
@@ -286,24 +307,7 @@ private val paths = mapOf(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             HomeMessageCarousel(vm.homeMessages, active && !vm.inputVisible)
             if(!vm.inputVisible) ClipboardSuggestionCard(vm)
-            if(vm.inputVisible) LinkInputCard(vm, submit)
-            else UiGroup {
-                Row(Modifier.fillMaxWidth().heightIn(min = 88.dp)
-                    .clickable(onClickLabel = "添加下载链接", onClick = { vm.openInput() })
-                    .padding(20.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Glyph("link", tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("添加下载链接", style = MaterialTheme.typography.titleMedium)
-                        Text("粘贴链接或完整分享文案", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    HomePasteButton(active, vm::openInput)
-                }
-            }
-            if(!vm.inputVisible) Text("支持 B 站、抖音、小红书、YouTube、微博和微信视频号",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp))
+            LinkInputCard(vm, submit)
         }
     }
 }
@@ -355,18 +359,27 @@ private val paths = mapOf(
         val link = Links.detect(text)
         candidate = text.takeIf { link != null && link.key != Links.detect(vm.input)?.key }
     }
-    LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         UiGroup {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("作品链接", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { vm.inputVisible = false }) { Text("收起") }
+            Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Glyph("link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("作品解析", style = MaterialTheme.typography.titleMedium)
+                    Text("粘贴分享链接，提取视频或图集", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            HorizontalDivider()
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("输入链接", style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
-                        .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
+                        .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged {
+                            focused = it.isFocused
+                            if(it.isFocused) vm.inputVisible = true
+                        },
                     placeholder = { Text("粘贴链接，作品将在下方解析") }, shape = RoundedCornerShape(20.dp),
                     trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
                         vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
@@ -431,7 +444,7 @@ private val paths = mapOf(
             modifier = Modifier.fillMaxWidth().testTag("resolveThenDownload")) {
             Text(when {
                 vm.qualityLoading -> "正在解析…"
-                preview?.isAlbum == true -> albumAction(preview, vm.albumContent, vm.selectedAlbumImages.size)
+                preview?.isAlbum == true -> albumAction(preview, vm.albumContent, vm.selectedAlbumImages.sorted(), vm.albumOutputs)
                 else -> "开始下载"
             }, color = if(canDownload)
                 MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.disabledOnPrimaryButton)
@@ -688,6 +701,7 @@ private val paths = mapOf(
                 Glyph("arrow")
             }
         }
+        AccentColorCard(vm)
         SaveLocationCard(vm)
         FileNameTemplateCard(vm)
         c2cw.cdydownload.update.AboutUpdateCard()
@@ -718,7 +732,7 @@ private val paths = mapOf(
                 }
                 Glyph(if(editing) "close" else "arrow")
             }
-            Text("支持变量：{title} 标题、{author} 作者、{platform} 平台、{id} 作品ID、{date} 下载日期。动态照片保留 _MP 标记，图片自动追加序号。",
+            Text("默认是日期加编号，不含标题。点预设换成整条规则，点下面的变量加进当前模板。动态照片保留 _MP 标记，图片自动追加序号。",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             AnimatedVisibility(editing,
@@ -734,6 +748,14 @@ private val paths = mapOf(
                                 label = { Text(label) },
                                 shape = RoundedCornerShape(12.dp)
                             )
+                        }
+                    }
+                    Text("插入变量", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        NAMING_INSERTS.forEach { (token, name) ->
+                            FilterChip(selected = draft.contains(token), onClick = {
+                                draft = if(draft.contains(token)) draft.replace(token, "") else (draft + token).take(80)
+                            }, label = { Text(name) }, shape = RoundedCornerShape(12.dp))
                         }
                     }
                     OutlinedTextField(
@@ -755,26 +777,80 @@ private val paths = mapOf(
 
 
 @Composable private fun SaveLocationCard(vm: MainViewModel) {
-    var editing by remember { mutableStateOf(false) }
-    var draft by remember { mutableStateOf(vm.saveFolder) }
-    UiGroup(onClick = { draft = vm.saveFolder; editing = true }) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("保存位置", style = MaterialTheme.typography.titleMedium)
-                    Text("视频：Download / ${vm.saveFolder}\n图片：Pictures / ${vm.saveFolder}\n配乐：Music / ${vm.saveFolder}",
-                        style = MaterialTheme.typography.bodyLarge)
-                }
-                Glyph("arrow")
-            }
-            Text("视频保存到下载目录，图片和动图保存到系统相册，独立配乐保存到音乐目录。B 站和 YouTube 音视频自动合并；抖音和小红书图集保留实况动态，普通动图保留原格式，图片与配乐分开下载。",
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("保存位置", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("视频、图片、音乐分开选择。选系统目录就不会再建文件夹。",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        SaveFolderChoice("视频", "Download", vm.saveFolderVideo, "saveFolderVideo") { vm.changeSaveFolder(SaveKind.VIDEO, it) }
+        SaveFolderChoice("图片", "Pictures", vm.saveFolderImage, "saveFolderImage") { vm.changeSaveFolder(SaveKind.IMAGE, it) }
+        SaveFolderChoice("音乐", "Music", vm.saveFolderMusic, "saveFolderMusic") { vm.changeSaveFolder(SaveKind.MUSIC, it) }
     }
-    if(editing) AlertDialog(onDismissRequest = { editing = false },
-        title = { Text("保存子目录") },
-        text = { OutlinedTextField(value = draft, onValueChange = { draft = it.take(40) }, singleLine = true,
-            placeholder = { Text(DEFAULT_SAVE_FOLDER) }, modifier = Modifier.testTag("saveFolderInput")) },
-        confirmButton = { Button(onClick = { vm.changeSaveFolder(draft); editing = false }) { Text("保存") } },
-        dismissButton = { TextButton(onClick = { editing = false }) { Text("取消") } })
+}
+
+@Composable private fun SaveFolderChoice(label: String, root: String, saved: String, tag: String, onSave: (String) -> Unit) {
+    var picking by remember { mutableStateOf(false) }
+    UiGroup(onClick = { picking = true }, modifier = Modifier.testTag(tag)) {
+        Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("${label}文件夹", style = MaterialTheme.typography.titleMedium)
+                Text(mediaLocationLabel(root, saved), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                Text(if(saved.isBlank()) "直接保存在系统目录" else "保存在所选文件夹",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Glyph("arrow")
+        }
+    }
+    if(picking) SaveFolderDialog(label, root, saved, onDismiss = { picking = false }, onSave = onSave)
+}
+
+@Composable private fun SaveFolderDialog(label: String, root: String, saved: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    val named = saved.isNotBlank() && saved != DEFAULT_SAVE_FOLDER
+    var customMode by remember { mutableStateOf(named) }
+    var selected by remember { mutableStateOf(if(named) "" else saved) }
+    var custom by remember { mutableStateOf(if(named) saved else "") }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("选择${label}文件夹") },
+        text = { Column {
+            listOf("" to "系统目录", DEFAULT_SAVE_FOLDER to DEFAULT_SAVE_FOLDER).forEach { (value, name) ->
+                Row(Modifier.fillMaxWidth().selectable(selected = !customMode && selected == value,
+                    role = androidx.compose.ui.semantics.Role.RadioButton,
+                    onClick = { customMode = false; selected = value }).padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = !customMode && selected == value, onClick = null)
+                    Column(Modifier.padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(name)
+                        Text(mediaLocationLabel(root, value), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth().selectable(selected = customMode,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
+                onClick = { customMode = true }).padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = customMode, onClick = null)
+                Text("其他名称", Modifier.padding(start = 12.dp))
+            }
+            if(customMode) OutlinedTextField(value = custom, onValueChange = { custom = it.take(40) }, singleLine = true,
+                placeholder = { Text("文件夹名称") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("saveFolderInput"))
+        } },
+        confirmButton = { Button(onClick = { onSave(if(customMode) custom else selected); onDismiss() }) { Text("确定") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } })
+}
+
+@Composable private fun AccentColorCard(vm: MainViewModel) {
+    UiGroup {
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("主题色", style = MaterialTheme.typography.titleMedium)
+            Text("跟随壁纸使用系统颜色。每天换色按日期轮换，也可以继续用橙色。",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AccentMode.values().forEach { mode ->
+                    FilterChip(selected = vm.accentMode == mode, onClick = { vm.changeAccentMode(mode) },
+                        label = { Text(mode.label) }, shape = RoundedCornerShape(12.dp))
+                }
+            }
+        }
+    }
 }

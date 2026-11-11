@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        AccentPreference.load(getSharedPreferences("settings", 0))
         lifecycle.addObserver(clipboardObserver)
         if(savedInstanceState == null) handleIntent(intent)
         lifecycleScope.launch {

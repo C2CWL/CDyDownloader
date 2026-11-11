@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,6 +33,7 @@ import java.util.Date
 import java.util.Locale
 
 /** Shows resolved media before queueing and lets album images be chosen individually. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable internal fun PreviewCard(preview: MediaPreview, vm: MainViewModel) {
     UiGroup(modifier = Modifier.fillMaxWidth().testTag("previewCard")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -39,7 +42,7 @@ import java.util.Locale
                     RemoteImage(preview.cover, Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)
                     Row(Modifier.align(Alignment.TopStart).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         PreviewBadge("${preview.platform.label} · 无水印")
-                        if(preview.isAlbum) PreviewBadge("${preview.images.size} 张图片")
+                        if(preview.isAlbum) PreviewBadge("${preview.images.size} 项 · ${preview.imageVideos.count { it != null }} 项实况")
                     }
                 }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -61,26 +64,48 @@ import java.util.Locale
             }
             if(preview.isAlbum) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("已选 ${vm.selectedAlbumImages.size} / ${preview.images.size} 张",
+                    Text("已选 ${vm.selectedAlbumImages.size} / ${preview.images.size} 项",
                         style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     TextButton(onClick = vm::selectAllAlbumImages, modifier = Modifier.testTag("albumSelectAll")) { Text("全选") }
                     TextButton(onClick = vm::clearAlbumImageSelection, modifier = Modifier.testTag("albumSelectNone")) { Text("清空") }
                 }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    itemsIndexed(preview.images) { index, url ->
-                        val selected = index in vm.selectedAlbumImages
-                        Box(Modifier.size(84.dp).clip(RoundedCornerShape(16.dp))
-                            .clickable { vm.toggleAlbumImage(index) }
-                            .testTag("albumImage-$index")) {
-                            RemoteImage(url, Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)
-                            PreviewBadge("${index + 1}")
-                            Checkbox(checked = selected, onCheckedChange = { vm.toggleAlbumImage(index) },
-                                modifier = Modifier.align(Alignment.TopEnd).testTag("albumImageCheck-$index"))
+                Text("动态保存为视频，实况保存为含动态的照片", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(albumSummary(preview.images.indices.toList(), preview.imageVideos,
+                    emptyMap()),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("albumGrid")) {
+                    preview.images.indices.chunked(2).forEach { indices ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            indices.forEach { index ->
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Box(Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(16.dp))
+                                        .clickable { vm.toggleAlbumImage(index) }.testTag("albumImage-$index")) {
+                                        RemoteImage(preview.images[index], Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)
+                                        PreviewBadge("${index + 1} · ${if(preview.imageVideos.getOrNull(index) != null) "实况" else "静图"}")
+                                        Checkbox(checked = index in vm.selectedAlbumImages,
+                                            onCheckedChange = { vm.toggleAlbumImage(index) },
+                                            modifier = Modifier.align(Alignment.TopEnd).testTag("albumImageCheck-$index"))
+                                    }
+                                    if(preview.imageVideos.getOrNull(index) != null) {
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                          AlbumOutput.entries.forEach { output ->
+                                            FilterChip(selected = albumOutput(index, preview.imageVideos, vm.albumOutputs) == output,
+                                                onClick = { vm.chooseAlbumOutput(index, output) },
+                                                label = { Text(when(output) { AlbumOutput.STATIC -> "静图"; AlbumOutput.VIDEO -> "动态"; AlbumOutput.MOTION -> "实况" }) },
+                                                modifier = Modifier.testTag("albumOutput-$index-${output.name}"))
+                                          }
+                                        }
+                                    } else Text("静图", style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            if(indices.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
                 if(vm.selectedAlbumImages.isEmpty() && vm.albumContent != AlbumContent.MUSIC)
-                    Text("至少选择一张图片才能下载", color = MaterialTheme.colorScheme.error,
+                    Text("至少选择一项内容才能下载", color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
             }
 
@@ -95,11 +120,10 @@ import java.util.Locale
     }
 }
 
-internal fun albumAction(preview: MediaPreview, content: AlbumContent, selectedCount: Int) = when(content) {
-    AlbumContent.MUSIC -> "只保存配乐"
-    AlbumContent.IMAGES -> "保存所选 $selectedCount 张图片"
-    AlbumContent.ALL -> if(preview.hasMusic) "保存所选 $selectedCount 张图片和配乐" else "保存所选 $selectedCount 张图片"
-}
+internal fun albumAction(preview: MediaPreview, content: AlbumContent, indices: List<Int>, outputs: Map<Int, AlbumOutput>) =
+    if(content == AlbumContent.MUSIC) "只保存配乐"
+    else "保存所选 " + albumSummary(indices, preview.imageVideos, outputs) +
+        if(content == AlbumContent.ALL && preview.hasMusic) "和配乐" else ""
 
 private fun engagement(label: String, count: Int): String? = when {
     count < 0 -> null
