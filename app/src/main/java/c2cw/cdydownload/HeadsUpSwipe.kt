@@ -1,7 +1,6 @@
 package c2cw.cdydownload
 
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -39,7 +38,7 @@ import androidx.compose.ui.unit.dp
                     (offset < -threshold/6 && velocity < -flingThreshold)
                 settling=scope.launch {
                     animate(offset,if(close) -height else 0f,
-                        animationSpec=if(close) tween(160) else spring(dampingRatio=1f,stiffness=1500f)) { value,_ -> offset=value }
+                        animationSpec=if(close) tween(UiMotion.Fast, easing=UiMotion.Exit) else UiMotion.rollback()) { value,_ -> offset=value }
                     if(close) onDismiss()
                 }
             })

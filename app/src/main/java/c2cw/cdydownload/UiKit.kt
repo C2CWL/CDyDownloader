@@ -43,8 +43,8 @@ internal val TileShape = RoundedCornerShape(12.dp)
     Row(modifier.clip(RoundedCornerShape(12.dp)).background(colors.surfaceContainerHigh).padding(3.dp)) {
         options.forEachIndexed { index, label ->
             val active = index == selected
-            val bg by animateColorAsState(if(active) colors.primary else Color.Transparent, UiMotion.fade(), label = "segBg")
-            val fg by animateColorAsState(if(active) colors.onPrimary else colors.onSurface, UiMotion.fade(), label = "segFg")
+            val bg by animateColorAsState(if(active) colors.primary else Color.Transparent, UiMotion.color(), label = "segBg")
+            val fg by animateColorAsState(if(active) colors.onPrimary else colors.onSurface, UiMotion.color(), label = "segFg")
             Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(bg)
                 .clickable(role = Role.Tab) { onSelect(index) }.semantics { this.selected = active }
                 .testTag("$tagPrefix-$index").padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
@@ -61,7 +61,7 @@ internal val TileShape = RoundedCornerShape(12.dp)
     Row(modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.55f)).padding(2.dp)) {
         options.forEachIndexed { index, label ->
             val active = index == selected
-            val bg by animateColorAsState(if(active) colors.primary else Color.Transparent, UiMotion.fade(), label = "miniBg")
+            val bg by animateColorAsState(if(active) colors.primary else Color.Transparent, UiMotion.color(), label = "miniBg")
             Box(Modifier.clip(RoundedCornerShape(6.dp)).background(bg)
                 .clickable(role = Role.Tab) { onSelect(index) }.semantics { this.selected = active }
                 .then(tags.getOrNull(index)?.let { Modifier.testTag(it) } ?: Modifier)
@@ -94,7 +94,7 @@ internal val TileShape = RoundedCornerShape(12.dp)
 /** Round selection mark for grid tiles. */
 @Composable internal fun SelectMark(checked: Boolean, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val bg by animateColorAsState(if(checked) colors.primary else Color.Black.copy(alpha = 0.25f), UiMotion.fade(), label = "mark")
+    val bg by animateColorAsState(if(checked) colors.primary else Color.Black.copy(alpha = 0.25f), UiMotion.color(), label = "mark")
     Box(modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(bg)
         .border(1.5.dp, if(checked) colors.primary else Color.White.copy(alpha = 0.9f), RoundedCornerShape(7.dp))
         .semantics { role = Role.Checkbox; selected = checked }, contentAlignment = Alignment.Center) {

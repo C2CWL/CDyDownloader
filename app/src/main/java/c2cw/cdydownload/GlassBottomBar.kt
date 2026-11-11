@@ -52,7 +52,7 @@ internal val BottomBarSpace = BarHeight + 18.dp + 16.dp
     val colors = MaterialTheme.colorScheme
     val dark = colors.background.luminance() < 0.5f
     val shape = RoundedCornerShape(BarHeight / 2)
-    val indicator by animateDpAsState(ItemWidth * selected, UiMotion.snappy(), label = "tabIndicator")
+    val indicator by animateDpAsState(ItemWidth * selected, UiMotion.indicator(), label = "tabIndicator")
     val style = HazeStyle(backgroundColor = colors.background,
         tint = HazeTint(colors.surface.copy(alpha = if(dark) 0.55f else 0.62f)), blurRadius = 22.dp, noiseFactor = 0f)
     val rim = Brush.verticalGradient(listOf(Color.White.copy(alpha = if(dark) 0.22f else 0.75f),
@@ -69,7 +69,7 @@ internal val BottomBarSpace = BarHeight + 18.dp + 16.dp
             Tabs.forEachIndexed { index, tab ->
                 val active = index == selected
                 val tint by animateColorAsState(if(active) colors.primary else colors.onSurfaceVariant,
-                    UiMotion.fade(), label = "tabTint")
+                    UiMotion.color(), label = "tabTint")
                 Column(Modifier.width(ItemWidth).fillMaxHeight().clip(RoundedCornerShape(26.dp))
                     .selectable(selected = active, role = Role.Tab, onClick = { onSelect(index) })
                     .testTag("tab$index"),

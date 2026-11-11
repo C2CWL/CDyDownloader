@@ -1,7 +1,9 @@
 package c2cw.cdydownload
 
 import android.os.Build
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -99,7 +101,7 @@ private fun ColorScheme.withAccent(t: AccentTones): ColorScheme = copy(
             labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
             labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
             labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        ), content = content)
+        ) { CompositionLocalProvider(LocalOverscrollFactory provides null, content = content) }
     }
 }
 

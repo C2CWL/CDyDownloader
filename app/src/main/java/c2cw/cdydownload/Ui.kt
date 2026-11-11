@@ -135,7 +135,7 @@ private val paths = mapOf(
             val distance = kotlin.math.abs(vm.requestedTab - pager.currentPage)
             // Far jumps would scroll through every page in between; land directly instead.
             if(distance > 1) pager.scrollToPage(vm.requestedTab)
-            else pager.animateScrollToPage(vm.requestedTab, animationSpec = UiMotion.snappy())
+            else pager.animateScrollToPage(vm.requestedTab, animationSpec = UiMotion.tab())
         }
     }
     LaunchedEffect(pager) {
@@ -172,7 +172,7 @@ private val paths = mapOf(
             Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
                 Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 20.dp, end = 12.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    AnimatedContent(page, transitionSpec = { fadeIn(UiMotion.fade()) togetherWith fadeOut(UiMotion.fade(100)) },
+                    AnimatedContent(page, transitionSpec = { fadeIn(UiMotion.fade(UiMotion.Instant)) togetherWith fadeOut(UiMotion.fade(UiMotion.Instant)) },
                         modifier = Modifier.weight(1f), label = "title") { current ->
                         Text(when(current) { TAB_HOME -> "下载"; TAB_FOLLOW -> "关注"; TAB_DOWNLOADS -> "下载记录"; else -> "设置" },
                             style = MaterialTheme.typography.headlineMedium)
@@ -203,7 +203,7 @@ private val paths = mapOf(
             val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
             AnimatedVisibility(!typing, Modifier.align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom)).padding(bottom = 16.dp),
-                enter = fadeIn(UiMotion.fade()), exit = fadeOut(UiMotion.fade(100))) {
+                enter = fadeIn(UiMotion.fade(UiMotion.Instant)), exit = fadeOut(UiMotion.fade(UiMotion.Instant))) {
                 GlassBottomBar(page, haze, badge = follows.sumOf { it.newCount }) { vm.tab = it }
             }
             AnimatedVisibility(vm.author.visible, enter = UiMotion.screenEnter, exit = UiMotion.screenExit) {
