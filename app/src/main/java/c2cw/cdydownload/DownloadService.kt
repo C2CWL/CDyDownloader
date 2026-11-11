@@ -224,9 +224,20 @@ class DownloadService : Service() {
         val published = mutableListOf<Uri>()
         val imageIndices = if(task.albumContent == AlbumContent.MUSIC) emptyList()
             else normalizedAlbumImageIndices(info.images.size, task.albumImageIndices)
-        check(task.albumContent == AlbumContent.MUSIC || imageIndices.isNotEmpty()) { "请至少选择一张图片" }
+        check(task.albumContent == AlbumContent.MUSIC || imageIndices.isNotEmpty()) { "请至少选择一项内容" }
         try {
             if(task.albumContent != AlbumContent.MUSIC) for(index in imageIndices) {
+                val outputType = albumOutput(index, info.imageVideos, task.albumOutputs)
+                if(outputType == AlbumOutput.VIDEO) {
+                    val video = File(dir, "slide-$index.mp4")
+                    state(task.id, TaskStatus.DOWNLOADING)
+                    download(info.imageVideos[index]!!, video, info, task.id, progress, "motion:$index")
+                    validateVideo(video)
+                    state(task.id, TaskStatus.SAVING)
+                    published += publish(video, info.title, task.id, author = info.author,
+                        platform = info.source.platform, indexSuffix = "${index + 1}")
+                    continue
+                }
                 val url = info.images[index]
                 currentCoroutineContext().ensureActive()
                 state(task.id, TaskStatus.DOWNLOADING)
@@ -235,7 +246,7 @@ class DownloadService : Service() {
                 val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 android.graphics.BitmapFactory.decodeFile(image.absolutePath, bounds)
                 check(bounds.outWidth > 0 && bounds.outHeight > 0) { "第 ${index + 1} 张图片无效" }
-                val motion = info.imageVideos.getOrNull(index)
+                val motion = info.imageVideos.getOrNull(index).takeIf { outputType == AlbumOutput.MOTION }
                 val takenAt: Long?
                 val output: File
                 val mime: String
@@ -297,8 +308,8 @@ class DownloadService : Service() {
         }
         val summary = when(task.albumContent) {
             AlbumContent.MUSIC -> "配乐已保存"
-            AlbumContent.IMAGES -> "${imageIndices.size} 张内容已保存"
-            AlbumContent.ALL -> "${imageIndices.size} 张内容已保存${if(info.music != null) "，配乐单独保存" else ""}"
+            AlbumContent.IMAGES -> "${albumSummary(imageIndices, info.imageVideos, task.albumOutputs)}已保存"
+            AlbumContent.ALL -> "${albumSummary(imageIndices, info.imageVideos, task.albumOutputs)}已保存${if(info.music != null) "，配乐单独保存" else ""}"
         }
         notifyResult(task.id, info.title, summary, published.first())
     }

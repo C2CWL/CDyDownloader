@@ -31,11 +31,18 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
                 selection = o.optJSONObject("selection")?.let { TrackSelection(it.getString("video"),it.optString("audio").takeIf(String::isNotBlank)) },
                 videoMode = runCatching { VideoDownloadMode.valueOf(o.optString("videoMode")) }.getOrDefault(VideoDownloadMode.MERGE),
                 albumContent = runCatching { AlbumContent.valueOf(o.optString("albumContent")) }.getOrDefault(AlbumContent.ALL),
+                albumOutputs = o.optJSONObject("albumOutputs")?.let { values ->
+                    values.keys().asSequence().mapNotNull { key ->
+                        val index = key.toIntOrNull() ?: return@mapNotNull null
+                        val output = runCatching { AlbumOutput.valueOf(values.getString(key)) }.getOrNull() ?: return@mapNotNull null
+                        index to output
+                    }.toMap()
+                }.orEmpty(),
                 albumImageIndices = o.optJSONArray("albumImageIndices")?.let { a -> (0 until a.length()).map { a.optInt(it, -1) } })
         }
     }.getOrDefault(emptyList())
-    @Synchronized fun add(link: VideoLink, albumMode: AlbumMode = AlbumMode.IMAGES, selection: TrackSelection? = null, videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumContent: AlbumContent = AlbumContent.ALL, albumImageIndices: List<Int>? = null): DownloadTask {
-        val task = DownloadTask(source = link.url, key = link.key, platform = link.platform, albumMode = albumMode, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices, status = if(_paused.value) TaskStatus.PAUSED else TaskStatus.QUEUED)
+    @Synchronized fun add(link: VideoLink, albumMode: AlbumMode = AlbumMode.IMAGES, selection: TrackSelection? = null, videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumContent: AlbumContent = AlbumContent.ALL, albumImageIndices: List<Int>? = null, albumOutputs: Map<Int, AlbumOutput> = emptyMap()): DownloadTask {
+        val task = DownloadTask(source = link.url, key = link.key, platform = link.platform, albumMode = albumMode, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices, albumOutputs = albumOutputs, status = if(_paused.value) TaskStatus.PAUSED else TaskStatus.QUEUED)
         _tasks.value = listOf(task) + _tasks.value
         persist()
         return task
@@ -72,9 +79,9 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
         if(!task.status.active) return false
         val mode = AlbumMode.IMAGES
         update(id) { it.copy(title = info.title, key = info.id, quality = if(info.images.isEmpty()) info.quality else when(it.albumContent) {
-            AlbumContent.IMAGES -> "${normalizedAlbumImageIndices(info.images.size, it.albumImageIndices).size} 张图片"
+            AlbumContent.IMAGES -> albumSummary(normalizedAlbumImageIndices(info.images.size, it.albumImageIndices), info.imageVideos, it.albumOutputs)
             AlbumContent.MUSIC -> "配乐"
-            AlbumContent.ALL -> "${normalizedAlbumImageIndices(info.images.size, it.albumImageIndices).size} 张图片 · ${if(!info.music.isNullOrBlank()) "图片和配乐" else "图片"}"
+            AlbumContent.ALL -> albumSummary(normalizedAlbumImageIndices(info.images.size, it.albumImageIndices), info.imageVideos, it.albumOutputs) + if(!info.music.isNullOrBlank()) " · 配乐" else ""
         }, albumMode = mode, resolution = info.resolution, fps = info.fps, status = TaskStatus.DOWNLOADING) }
         return true
     }
@@ -92,6 +99,7 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
             put("title", t.title); put("status", t.status.name); put("bytes", t.bytes); put("total", t.total)
             put("albumMode", t.albumMode.name); put("outputUris", JSONArray(t.outputUris)); put("mimeType", t.mimeType)
             put("fps",t.fps); put("albumContent", t.albumContent.name)
+            put("albumOutputs", JSONObject().apply { t.albumOutputs.forEach { (index, output) -> put(index.toString(), output.name) } })
             t.albumImageIndices?.let { put("albumImageIndices", JSONArray(it)) }
             t.selection?.let { put("selection",JSONObject().put("video",it.video).put("audio",it.audio.orEmpty())) }
             put("resolution", t.resolution); put("quality", t.quality); put("uri", t.uri); put("error", t.error); put("created", t.created)

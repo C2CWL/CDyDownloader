@@ -423,7 +423,7 @@ private val paths = mapOf(
             modifier = Modifier.fillMaxWidth().testTag("resolveThenDownload")) {
             Text(when {
                 vm.qualityLoading -> "正在解析…"
-                preview?.isAlbum == true -> albumAction(preview, vm.albumContent, vm.selectedAlbumImages.size)
+                preview?.isAlbum == true -> albumAction(preview, vm.albumContent, vm.selectedAlbumImages.sorted(), vm.albumOutputs)
                 else -> "开始下载"
             }, color = if(canDownload)
                 MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.disabledOnPrimaryButton)
