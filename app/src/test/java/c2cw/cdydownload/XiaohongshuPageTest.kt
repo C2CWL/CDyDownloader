@@ -23,6 +23,10 @@ class XiaohongshuPageTest {
              "stream":{"h264":[{"masterUrl":"https://sns-video.xhscdn.com/live.mp4?sig=original"}]}}
         ]""")), link, "test")
         assertEquals("undefined", info.title)
+        val preview = info.toPreview()
+        assertEquals("https://www.xiaohongshu.com/", preview.referer)
+        assertEquals("test", preview.userAgent)
+        assertEquals(info.images.first(), preview.cover)
         assertEquals("", info.video)
         assertEquals(2, info.images.size)
         assertEquals(listOf(null, "https://sns-video.xhscdn.com/live.mp4?sig=original"), info.imageVideos)
