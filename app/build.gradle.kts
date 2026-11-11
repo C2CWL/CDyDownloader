@@ -11,8 +11,8 @@ android {
         minSdk = 33
         targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 107
-        versionName = "1.4.3"
+        versionCode = 108
+        versionName = "1.5.0"
         buildConfigField("String", "UPDATE_REPOSITORY", "\"C2CWL/CDyDownloader\"")
         buildConfigField("String", "UPDATE_BRANCH", "\"main\"")
     }
