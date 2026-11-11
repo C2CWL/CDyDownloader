@@ -57,14 +57,14 @@ class XiaohongshuPageTest {
     }
     @Test fun parsesMobileLivePhotoShapeReturnedBySharedSample() {
         val body = """{"noteId":"$id","type":"normal","title":"实况图集","imageList":[
-          {"url":"http://sns-web-i10.rednotecdn.com/sample!rnh5jpg","livePhoto":true,
+          {"fileId":"1040g008327804l2fn0005qdc87fssgek6qcei9g","url":"http://sns-web-i10.rednotecdn.com/sample!rnh5jpg","livePhoto":true,
            "stream":{"h264":[{"width":1080,"height":1440,"audioChannels":0,
            "masterUrl":"http://sns-v27.rednotecdn.com/stream/sample.mp4"}]}}
         ]}"""
         val mobile = "<script>window.__INITIAL_STATE__={\"noteData\":{\"data\":{\"noteData\":$body}}};</script>"
         val info = XiaohongshuPage.parse(mobile, link, "test")
         assertEquals("", info.video)
-        assertEquals("https://sns-web-i10.rednotecdn.com/sample!rnh5jpg", info.images.single())
+        assertEquals("https://ci.xiaohongshu.com/1040g008327804l2fn0005qdc87fssgek6qcei9g", info.images.single())
         assertEquals("https://sns-v27.rednotecdn.com/stream/sample.mp4", info.imageVideos.single())
     }
 
