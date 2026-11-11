@@ -17,7 +17,7 @@ R8：保留 Rhino 动态执行与 Protobuf 反射字段；排除 Android 没有�
 - 手机 instrumentation 完整下载 Shorts，合并后包含音频和视频轨道，尺寸为 1080×1920。
 - R8 正式构建通过系统分享入口再次下载 Shorts，完成大小 23.0 MB，尺寸 1080×1920。
 
-离线测试覆盖 URL 去重、非法输入、画质选择、缺少音轨和非渐进式资源。在线测试以 DBDOWN_YOUTUBE_ONLINE=1 显式启用；网络和上游内容变化可能影响结果。支持 YouTube 网页登录。Google 凭据只在官方网页填写，应用仅使用 WebView 保存的 YouTube 域 Cookie。Google 可能在后续登录步骤拒绝内嵌浏览器；打开邮箱输入页不代表已完成登录。
+离线测试覆盖 URL 去重、非法输入、画质选择、缺少音轨和非渐进式资源。在线测试以 CDY_YOUTUBE_ONLINE=1 显式启用；网络和上游内容变化可能影响结果。支持 YouTube 网页登录。Google 凭据只在官方网页填写，应用仅使用 WebView 保存的 YouTube 域 Cookie。Google 可能在后续登录步骤拒绝内嵌浏览器；打开邮箱输入页不代表已完成登录。
 
 ## 登录态
 

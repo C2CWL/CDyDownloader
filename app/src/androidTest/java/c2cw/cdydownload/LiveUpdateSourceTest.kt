@@ -12,12 +12,12 @@ class LiveUpdateSourceTest {
     private fun report(text: String) = InstrumentationRegistry.getInstrumentation().sendStatus(0,
         android.os.Bundle().apply { putString("stream", "$text\n") })
     @Test fun diagnoseLiveSources() = runBlocking<Unit> {
-        val source = UpdateSource("daxiaamu/DBdown", "main")
+        val source = UpdateSource("C2CWL/CDyDownloader", "main")
         try { report("FETCH_OK version=${source.fetch("stable", null).manifest.versionName}") }
         catch(e: Exception) { report("FETCH_FAILED ${e.javaClass.simpleName}: ${e.message}") }
-        val apiUnavailable = UpdateSource("daxiaamu/DBdown", "main", sourceOverride = { path ->
+        val apiUnavailable = UpdateSource("C2CWL/CDyDownloader", "main", sourceOverride = { path ->
             source.sources(path).map { endpoint ->
-                if(endpoint.family == "authority") endpoint.copy(url = "https://api.github.com/repos/daxiaamu/DBdown/contents/not-present-probe.json") else endpoint
+                if(endpoint.family == "authority") endpoint.copy(url = "https://api.github.com/repos/C2CWL/CDyDownloader/contents/not-present-probe.json") else endpoint
             }
         })
         val fallback = apiUnavailable.fetch("stable", null)

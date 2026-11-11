@@ -7,9 +7,9 @@ object LoginPageStyle {
         (function() {
             if (location.hostname !== 'passport.bilibili.com' ||
                 !location.pathname.startsWith('/h5-app/passport/login')) return;
-            if (document.getElementById('dbdown-login-layout') || !document.head) return;
+            if (document.getElementById('cdy-login-layout') || !document.head) return;
             var style = document.createElement('style');
-            style.id = 'dbdown-login-layout';
+            style.id = 'cdy-login-layout';
             style.textContent = '.login-wrap .explain-tips{position:static!important;margin:16px 0!important;}';
             document.head.appendChild(style);
         })();

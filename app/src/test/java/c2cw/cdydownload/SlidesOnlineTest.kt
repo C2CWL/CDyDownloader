@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 class SlidesOnlineTest {
     @Test fun userSampleHasEightDownloadableLiveParts() {
-        assumeTrue(System.getenv("DBDOWN_SLIDES_ONLINE") == "1")
+        assumeTrue(System.getenv("CDY_SLIDES_ONLINE") == "1")
         val client = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS).build()
         val url = "https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/?aweme_ids=%5B7688970467424551275%5D&request_source=200"
         val raw = client.newCall(Request.Builder().url(url).header("User-Agent", VideoResolver.MOBILE).build()).execute().use {

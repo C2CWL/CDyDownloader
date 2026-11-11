@@ -42,8 +42,8 @@ internal object YoutubeResolver {
                     if((it.request.url.host == "youtubei.googleapis.com" || it.request.url.host == "youtube.com" ||
                         it.request.url.host.endsWith(".youtube.com")) && it.request.url.encodedPath.endsWith("/player")) {
                         players.get()?.takeIf { list -> list.size < 8 }?.let { list ->
-                            runCatching { org.json.JSONObject(body.orEmpty()).put("_dbdownUa",it.request.header("User-Agent") ?: VideoResolver.DESKTOP)
-                                .put("_dbdownSource","NewPipe") }.getOrNull()?.let(list::add)
+                            runCatching { org.json.JSONObject(body.orEmpty()).put("_cdyUa",it.request.header("User-Agent") ?: VideoResolver.DESKTOP)
+                                .put("_cdySource","NewPipe") }.getOrNull()?.let(list::add)
                         }
                     }
                     Response(it.code, it.message, it.headers.toMultimap(), body, it.request.url.toString())
@@ -69,7 +69,7 @@ internal object YoutubeResolver {
                 val page = client.newCall(Request.Builder().url(link.url).header("User-Agent",VideoResolver.DESKTOP).build())
                     .also(register).execute().use { check(it.isSuccessful); it.body!!.string() }
                 if(WebAccounts.youtubeSessionPresent()) WebAccounts.observeYoutubeSession(page,snapshot)
-                youtubePlayerResponse(page)?.put("_dbdownSource","WEB_PAGE")?.let { players.get()!!.add(it) }
+                youtubePlayerResponse(page)?.put("_cdySource","WEB_PAGE")?.let { players.get()!!.add(it) }
             }
             val extractor = ServiceList.YouTube.getStreamExtractor(link.url)
             var extractionError: Exception? = null
@@ -100,8 +100,8 @@ internal object YoutubeResolver {
             responses.forEach { player ->
                 candidates += youtubeDirectStreams(player,link)
                 val data=player.optJSONObject("streamingData") ?: return@forEach
-                val ua=player.optString("_dbdownUa",VideoResolver.DESKTOP)
-                val source=player.optString("_dbdownSource","player")
+                val ua=player.optString("_cdyUa",VideoResolver.DESKTOP)
+                val source=player.optString("_cdySource","player")
                 for((field,dash) in listOf("dashManifestUrl" to true,"hlsManifestUrl" to false)) {
                     val rawUrl=data.optString(field)
                     if(rawUrl.isNotBlank()) attempt {

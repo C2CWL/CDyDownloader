@@ -73,7 +73,7 @@ internal fun youtubeDirectStreams(player: JSONObject, link: VideoLink,
                 format.optLong("averageBitrate").takeIf { it > 0 } ?: format.optLong("bitrate"),
                 track?.optString("id").orEmpty(),track?.optString("displayName")?.contains("original",true) == true,
                 track?.optBoolean("audioIsDefault") == true,format.optInt("audioChannels"),
-                player.optString("_dbdownUa",VideoResolver.DESKTOP),player.optString("_dbdownSource","player"),
+                player.optString("_cdyUa",VideoResolver.DESKTOP),player.optString("_cdySource","player"),
                 format.optString("itag"),durationMs=format.optLong("approxDurationMs"))
         }
     }
