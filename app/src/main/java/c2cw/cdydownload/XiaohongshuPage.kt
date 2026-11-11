@@ -36,8 +36,13 @@ internal object XiaohongshuPage {
         check(images.length() > 0) { "笔记没有图片资源" }
         val originals = (0 until images.length()).map { images.getJSONObject(it) }
         val urls = originals.mapIndexed { index, image ->
-            mediaUrl(image.optString("urlDefault")) ?: mediaUrl(image.optString("url"))
-                ?: error("第 ${index + 1} 张图片缺少资源")
+            val fileId = image.optString("fileId")
+            if(fileId.matches(Regex("[A-Za-z0-9_-]+"))) {
+                "https://ci.xiaohongshu.com/$fileId"
+            } else {
+                mediaUrl(image.optString("urlDefault")) ?: mediaUrl(image.optString("url"))
+                    ?: error("第 ${index + 1} 张图片缺少资源")
+            }
         }
         val motion = originals.mapIndexed { index, image ->
             val video = streams(image).flatMap(::addresses).firstOrNull()
