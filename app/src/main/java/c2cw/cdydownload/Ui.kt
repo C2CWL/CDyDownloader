@@ -286,24 +286,7 @@ private val paths = mapOf(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             HomeMessageCarousel(vm.homeMessages, active && !vm.inputVisible)
             if(!vm.inputVisible) ClipboardSuggestionCard(vm)
-            if(vm.inputVisible) LinkInputCard(vm, submit)
-            else UiGroup {
-                Row(Modifier.fillMaxWidth().heightIn(min = 88.dp)
-                    .clickable(onClickLabel = "添加下载链接", onClick = { vm.openInput() })
-                    .padding(20.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Glyph("link", tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("添加下载链接", style = MaterialTheme.typography.titleMedium)
-                        Text("粘贴链接或完整分享文案", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    HomePasteButton(active, vm::openInput)
-                }
-            }
-            if(!vm.inputVisible) Text("支持 B 站、抖音、小红书、YouTube、微博和微信视频号",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp))
+            LinkInputCard(vm, submit)
         }
     }
 }
@@ -355,18 +338,27 @@ private val paths = mapOf(
         val link = Links.detect(text)
         candidate = text.takeIf { link != null && link.key != Links.detect(vm.input)?.key }
     }
-    LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         UiGroup {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("作品链接", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { vm.inputVisible = false }) { Text("收起") }
+            Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Glyph("link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("作品解析", style = MaterialTheme.typography.titleMedium)
+                    Text("粘贴分享链接，提取视频或图集", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            HorizontalDivider()
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("输入链接", style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
-                        .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
+                        .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged {
+                            focused = it.isFocused
+                            if(it.isFocused) vm.inputVisible = true
+                        },
                     placeholder = { Text("粘贴链接，作品将在下方解析") }, shape = RoundedCornerShape(20.dp),
                     trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
                         vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()

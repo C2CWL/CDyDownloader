@@ -31,6 +31,7 @@ class InputClipboardTest {
                 vm.openInput("尚未提交的输入")
                 clipboard.setPrimaryClip(ClipData.newPlainText("test", text))
             }
+            rule.onNodeWithTag("downloadLinkInput").performClick()
             rule.onNodeWithTag("fillClipboardLink").assertIsDisplayed().assertTextEquals("填入")
             rule.runOnIdle { assertEquals("尚未提交的输入", vm.input) }
             rule.onNodeWithTag("inputClipboardHeadsUp").assertDoesNotExist()
@@ -65,7 +66,7 @@ class InputClipboardTest {
             ).forEach { clip ->
                 rule.runOnIdle { vm.setClipboard(true); vm.openInput(); clipboard.setPrimaryClip(clip) }
                 rule.waitForIdle()
-                rule.onNodeWithTag("downloadLinkInput").assertIsFocused()
+                rule.onNodeWithTag("downloadLinkInput").assertIsDisplayed().performClick()
                 assertNull(notification())
                 rule.runOnIdle { vm.inputVisible = false }
                 rule.waitForIdle()
