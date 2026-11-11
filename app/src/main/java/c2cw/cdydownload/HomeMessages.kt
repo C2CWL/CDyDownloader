@@ -3,8 +3,7 @@ package c2cw.cdydownload
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.absoluteValue
 import androidx.compose.foundation.clickable
@@ -76,7 +75,7 @@ internal data class HomeMessages(val enabled: Boolean, val intervalSeconds: Int,
                         delay(config.intervalSeconds * 1000L)
                         if(!pager.isScrollInProgress) {
                             pager.animateScrollToPage(pager.settledPage + 1,
-                                animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing))
+                                animationSpec = spring(dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness))
                         }
                     }
                 }

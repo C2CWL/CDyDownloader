@@ -31,6 +31,7 @@ class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
         WebAccounts.refresh(true)
         val actual = expand(link)
         when(actual.platform) {
+            Platform.XIAOHONGSHU -> XiaohongshuResolver(trackCall).resolve(actual, selection)
             Platform.WECHAT -> WechatResolver(trackCall).resolve(actual, selection)
             Platform.YOUTUBE -> YoutubeResolver.resolve(actual, { coroutineContext.ensureActive() }, trackCall = trackCall, requested = selection)
             Platform.WEIBO -> WeiboResolver(trackCall) { coroutineContext.ensureActive() }.resolve(actual,selection)

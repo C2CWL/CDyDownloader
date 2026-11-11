@@ -3,14 +3,14 @@ package c2cw.cdydownload
 import java.net.URI
 import java.net.URLDecoder
 
-enum class Platform(val label: String) { BILI("B 站"), DOUYIN("抖音"), YOUTUBE("YouTube"), WEIBO("微博"), WECHAT("微信视频号");
-    companion object { val accountPlatforms = listOf(BILI, DOUYIN, YOUTUBE, WEIBO, WECHAT) }
+enum class Platform(val label: String) { BILI("B 站"), DOUYIN("抖音"), YOUTUBE("YouTube"), WEIBO("微博"), XIAOHONGSHU("小红书"), WECHAT("微信视频号");
+    companion object { val accountPlatforms = listOf(BILI, DOUYIN, YOUTUBE, WEIBO, XIAOHONGSHU, WECHAT) }
 }
 data class VideoLink(val platform: Platform, val url: String, val key: String, val part: Int = 1)
 
 
 object Links {
-    private val urls = Regex("""(?i)(?:https?://)?(?:[a-z0-9-]+\.)+(?:com|cn|tv|be)/[^\s<>"\[\](){}，。！？、【】（）]+""")
+    private val urls = Regex("""(?i)(?:https?://)?(?:[a-z0-9_.~%-]+@)?(?:[a-z0-9-]+\.)+(?:com|cn|tv|be)/[^\s<>"\[\](){}，。！？、【】（）]+""")
     private val bv = Regex("""(?<![A-Za-z0-9])BV[1-9A-HJ-NP-Za-km-z]{10}(?![A-Za-z0-9])""")
     private val av = Regex("""(?i)^av([1-9][0-9]{0,18})$""")
     private val youtubeId = Regex("[A-Za-z0-9_-]{11}")
@@ -37,6 +37,7 @@ object Links {
         val path = uri.path.orEmpty()
         WechatLinks.fromUri(uri)?.let { return it }
         WeiboLinks.fromUri(uri)?.let { return it }
+        XiaohongshuLinks.fromUri(uri)?.let { return it }
         if (host in setOf("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be")) {
             val id = if(host.endsWith("youtu.be")) path.removePrefix("/").trimEnd('/')
             else if(path == "/watch") {

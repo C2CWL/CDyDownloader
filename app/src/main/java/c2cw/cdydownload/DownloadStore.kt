@@ -29,12 +29,13 @@ class DownloadStore(context: Context, preferencesName: String = "downloads") {
                 outputUris = o.optJSONArray("outputUris")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty(),
                 mimeType = o.optString("mimeType", "video/mp4"), resolution = o.optString("resolution"), fps = o.optDouble("fps",0.0).toFloat(),
                 selection = o.optJSONObject("selection")?.let { TrackSelection(it.getString("video"),it.optString("audio").takeIf(String::isNotBlank)) },
+                videoMode = runCatching { VideoDownloadMode.valueOf(o.optString("videoMode")) }.getOrDefault(VideoDownloadMode.MERGE),
                 albumContent = runCatching { AlbumContent.valueOf(o.optString("albumContent")) }.getOrDefault(AlbumContent.ALL),
                 albumImageIndices = o.optJSONArray("albumImageIndices")?.let { a -> (0 until a.length()).map { a.optInt(it, -1) } })
         }
     }.getOrDefault(emptyList())
-    @Synchronized fun add(link: VideoLink, albumMode: AlbumMode = AlbumMode.IMAGES, selection: TrackSelection? = null, albumContent: AlbumContent = AlbumContent.ALL, albumImageIndices: List<Int>? = null): DownloadTask {
-        val task = DownloadTask(source = link.url, key = link.key, platform = link.platform, albumMode = albumMode, selection = selection, albumContent = albumContent, albumImageIndices = albumImageIndices, status = if(_paused.value) TaskStatus.PAUSED else TaskStatus.QUEUED)
+    @Synchronized fun add(link: VideoLink, albumMode: AlbumMode = AlbumMode.IMAGES, selection: TrackSelection? = null, videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumContent: AlbumContent = AlbumContent.ALL, albumImageIndices: List<Int>? = null): DownloadTask {
+        val task = DownloadTask(source = link.url, key = link.key, platform = link.platform, albumMode = albumMode, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices, status = if(_paused.value) TaskStatus.PAUSED else TaskStatus.QUEUED)
         _tasks.value = listOf(task) + _tasks.value
         persist()
         return task
