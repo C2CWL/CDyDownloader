@@ -64,9 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -204,12 +202,6 @@ private val paths = mapOf(
 
 @Composable fun DownloaderScreen(vm: MainViewModel, requestNotifications: () -> Unit, checkClipboard: () -> Unit) {
     AccountExpiryPrompt { vm.inputVisible = false; vm.settings = true }
-    val messagesLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(vm, messagesLifecycle) {
-        messagesLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
-            while(true) { vm.refreshHomeMessages(); delay(300_000) }
-        }
-    }
     val tasks by vm.store.tasks.collectAsStateWithLifecycle()
     val paused by vm.store.paused.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -246,7 +238,7 @@ private val paths = mapOf(
                     state = pager, modifier = Modifier.fillMaxSize().testTag("pages"),
                     beyondViewportPageCount = 1, key = { it }
                 ) { page ->
-                    if(page == 0) HomePage(vm, pager.currentPage == 0, topInset) {
+                    if(page == 0) HomePage(vm, topInset) {
                         if(vm.submit()) requestNotifications()
                     } else DownloadsPage(tasks, vm, requestNotifications, topInset)
                 }
@@ -296,7 +288,7 @@ private val paths = mapOf(
 }
 
 
-@Composable private fun HomePage(vm: MainViewModel, active: Boolean, topInset: Dp, submit: () -> Unit) {
+@Composable private fun HomePage(vm: MainViewModel, topInset: Dp, submit: () -> Unit) {
     val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
     Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset)
         .padding(horizontal = 20.dp).padding(bottom = if(typing) 12.dp else 104.dp).imePadding(),
@@ -305,7 +297,6 @@ private val paths = mapOf(
             .padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("把喜欢的作品，留在本地", style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            HomeMessageCarousel(vm.homeMessages, active && !vm.inputVisible)
             if(!vm.inputVisible) ClipboardSuggestionCard(vm)
             LinkInputCard(vm, submit)
         }
