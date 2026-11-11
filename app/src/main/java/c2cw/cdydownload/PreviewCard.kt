@@ -1,5 +1,6 @@
 package c2cw.cdydownload
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,10 +33,12 @@ import java.util.Locale
 
 /** Shows resolved media before queueing and lets album images be chosen individually. */
 @Composable internal fun PreviewCard(preview: MediaPreview, vm: MainViewModel) {
-    UiGroup(modifier = Modifier.fillMaxWidth().testTag("previewCard")) {
+    Surface(modifier = Modifier.fillMaxWidth().testTag("previewCard"),
+        shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if(preview.cover.isNotBlank())
-                Box(Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(20.dp))) {
+                Box(Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(8.dp))) {
                     RemoteImage(preview.cover, Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)
                     Row(Modifier.align(Alignment.TopStart).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         PreviewBadge("${preview.platform.label} · 无水印")
@@ -69,7 +72,7 @@ import java.util.Locale
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(preview.images) { index, url ->
                         val selected = index in vm.selectedAlbumImages
-                        Box(Modifier.size(84.dp).clip(RoundedCornerShape(16.dp))
+                        Box(Modifier.size(84.dp).clip(RoundedCornerShape(6.dp))
                             .clickable { vm.toggleAlbumImage(index) }
                             .testTag("albumImage-$index")) {
                             RemoteImage(url, Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)

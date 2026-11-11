@@ -358,16 +358,17 @@ private val paths = mapOf(
     LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        UiGroup {
+        ResolvePanel(loading = vm.qualityLoading, resolved = vm.isResolved(detected),
+            failed = vm.resolveError != null, platform = detected?.platform?.label) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("作品链接", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Text("输入链接", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     TextButton(onClick = { vm.inputVisible = false }) { Text("收起") }
                 }
                 OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
                         .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
-                    placeholder = { Text("粘贴链接，作品将在下方解析") }, shape = RoundedCornerShape(20.dp),
+                    placeholder = { Text("粘贴链接，作品将在下方解析") }, shape = RoundedCornerShape(8.dp),
                     trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
                         vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
                     }, modifier = Modifier.testTag("clearLinkInput")) { Glyph("close", "清空输入") } }} else null,
@@ -383,7 +384,6 @@ private val paths = mapOf(
                     }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
                 }
                 if(detected != null && vm.qualityLoading) {
-                    AppProgressBar(Modifier.fillMaxWidth().testTag("inlineResolveProgress"))
                     Text("正在解析作品信息…", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -401,7 +401,7 @@ private val paths = mapOf(
                     val availableAlbumOptions = AlbumContent.entries.filter { it != AlbumContent.MUSIC || vm.preview?.hasMusic == true }
                     availableAlbumOptions.forEach { content ->
                         FilterChip(selected = vm.albumContent == content, onClick = { vm.albumContent = content },
-                            label = { Text(content.label) }, shape = RoundedCornerShape(14.dp),
+                            label = { Text(content.label) }, shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.testTag("album-${content.name}"))
                     }
                 }
@@ -412,7 +412,7 @@ private val paths = mapOf(
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     VideoDownloadMode.entries.forEach { mode ->
                         FilterChip(selected = vm.videoMode == mode, onClick = { vm.videoMode = mode },
-                            label = { Text(mode.label) }, shape = RoundedCornerShape(14.dp),
+                            label = { Text(mode.label) }, shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.testTag("videoMode-${mode.name}"))
                     }
                 }
@@ -427,7 +427,7 @@ private val paths = mapOf(
             if(vm.albumContent == AlbumContent.MUSIC) preview.hasMusic else vm.selectedAlbumImages.isNotEmpty()
         val canDownload = vm.isResolved(detected) && !vm.qualityLoading && albumReady
         MiuixButton(onClick = submit, enabled = canDownload,
-            colors = MiuixButtonDefaults.buttonColorsPrimary(), cornerRadius = 20.dp, minHeight = 54.dp,
+            colors = MiuixButtonDefaults.buttonColorsPrimary(), cornerRadius = 10.dp, minHeight = 54.dp,
             modifier = Modifier.fillMaxWidth().testTag("resolveThenDownload")) {
             Text(when {
                 vm.qualityLoading -> "正在解析…"
