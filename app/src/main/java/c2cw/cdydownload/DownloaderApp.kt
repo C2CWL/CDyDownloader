@@ -25,6 +25,7 @@ class DownloaderApp : Application() {
         getSystemService(android.app.NotificationManager::class.java).cancel(9502)
         WebAccounts.initialize(this)
         DouyinDesktop.initialize(this)
+        DouyinAuthorWeb.initialize(this)
         store = DownloadStore(this)
         updates = UpdateManager(this)
     }

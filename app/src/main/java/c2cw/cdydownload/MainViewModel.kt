@@ -34,19 +34,51 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             SaveKind.IMAGE -> saveFolderImage = value
             SaveKind.MUSIC -> saveFolderMusic = value
         }
-        val key = when(kind) {
-            SaveKind.VIDEO -> SAVE_FOLDER_VIDEO
-            SaveKind.IMAGE -> SAVE_FOLDER_IMAGE
-            SaveKind.MUSIC -> SAVE_FOLDER_MUSIC
-        }
-        prefs.edit().putString(key, value).apply()
+        val old = saveTree(kind)
+        setSaveTreeState(kind, "")
+        prefs.edit().putString(saveFolderKey(kind), value).remove(saveTreeKey(kind)).apply()
+        SaveTree.releaseUnused(context, old, SaveKind.entries.map(::saveTree))
     }
+    var saveTreeVideo by mutableStateOf(readSaveTree(prefs, SaveKind.VIDEO))
+        private set
+    var saveTreeImage by mutableStateOf(readSaveTree(prefs, SaveKind.IMAGE))
+        private set
+    var saveTreeMusic by mutableStateOf(readSaveTree(prefs, SaveKind.MUSIC))
+        private set
+    fun saveTree(kind: SaveKind) = when(kind) { SaveKind.VIDEO -> saveTreeVideo; SaveKind.IMAGE -> saveTreeImage; SaveKind.MUSIC -> saveTreeMusic }
+    fun saveFolder(kind: SaveKind) = when(kind) { SaveKind.VIDEO -> saveFolderVideo; SaveKind.IMAGE -> saveFolderImage; SaveKind.MUSIC -> saveFolderMusic }
+    private fun setSaveTreeState(kind: SaveKind, value: String) {
+        when(kind) {
+            SaveKind.VIDEO -> saveTreeVideo = value
+            SaveKind.IMAGE -> saveTreeImage = value
+            SaveKind.MUSIC -> saveTreeMusic = value
+        }
+    }
+    /** A folder picked with the system picker. Earlier typed folder names keep working until this is used. */
+    fun chooseSaveTree(kind: SaveKind, uri: android.net.Uri) {
+        try { SaveTree.persist(context, uri) } catch(_: SecurityException) {
+            notice = "没有获得这个文件夹的写入权限，请换一个文件夹"; return
+        }
+        val old = saveTree(kind)
+        setSaveTreeState(kind, uri.toString())
+        prefs.edit().putString(saveTreeKey(kind), uri.toString()).apply()
+        SaveTree.releaseUnused(context, old, SaveKind.entries.map(::saveTree))
+    }
+    /** True when a picked folder no longer grants write access, so settings can warn early. */
+    fun saveTreeLost(kind: SaveKind) = saveTree(kind).let { it.isNotBlank() && !SaveTree.hasWriteAccess(context.contentResolver, it) }
     var accentMode by mutableStateOf(AccentMode.WALLPAPER)
         private set
     fun changeAccentMode(mode: AccentMode) {
         accentMode = mode
         AccentPreference.mode = mode
         prefs.edit().putString(ACCENT_MODE, mode.name).apply()
+    }
+    val customAccent get() = AccentPreference.custom
+    fun changeCustomAccent(color: Int) {
+        val opaque = color or (0xFF shl 24)
+        AccentPreference.custom = opaque
+        changeAccentMode(AccentMode.CUSTOM)
+        prefs.edit().putInt(ACCENT_CUSTOM, opaque).apply()
     }
     init { AccentPreference.load(prefs); accentMode = AccentPreference.mode }
     var fileNameTemplate by mutableStateOf(prefs.getString(FILE_NAME_TEMPLATE, DEFAULT_FILE_NAME_TEMPLATE) ?: DEFAULT_FILE_NAME_TEMPLATE)
@@ -90,7 +122,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val result = deleteDownloadTasks(store, request.ids, withFiles, DownloadService::awaitCancellation) { value ->
-                    context.contentResolver.delete(android.net.Uri.parse(value), null, null)
+                    deleteSavedOutput(context, value)
                 }
                 notice = if(result.failed == 0) "已删除 ${result.removed} 个任务" else "已删除 ${result.removed} 个任务，${result.failed} 个任务的文件无法删除，记录已保留"
                 deleteRequest = null
@@ -100,9 +132,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
     internal val specificationEditor by lazy { SpecificationEditor(context,viewModelScope) { task ->
-        revealTaskId=task.id; tab=1; settings=false; start(task.id)
+        revealTaskId=task.id; tab=TAB_DOWNLOADS; start(task.id)
     } }
-    var settings by mutableStateOf(false)
+    /** Settings is a bottom-bar tab now; this keeps older call sites working. */
+    var settings: Boolean
+        get() = selectedTab == TAB_SETTINGS
+        set(value) { if(value) tab = TAB_SETTINGS else if(selectedTab == TAB_SETTINGS) tab = TAB_HOME }
     var inputVisible by mutableStateOf(false)
     var input by mutableStateOf("")
     /** Chosen before the download starts; for video works. */
@@ -124,6 +159,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private set
     fun chooseAlbumOutput(index: Int, output: AlbumOutput) {
         if(resolvedInfo?.imageVideos?.getOrNull(index) != null) albumOutputs = albumOutputs + (index to output)
+    }
+    /** One switch for every live item in the album. */
+    fun chooseAllAlbumOutputs(output: AlbumOutput) {
+        val videos = resolvedInfo?.imageVideos ?: return
+        albumOutputs = videos.indices.filter { videos[it] != null }.associateWith { output }
     }
     var resolveError by mutableStateOf<String?>(null)
         private set
@@ -158,6 +198,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 if(info.images.isEmpty() && specs != null && specs.videos.size > 1) qualityCatalog = specs
             } catch(e: CancellationException) { throw e }
+            catch(e: DouyinUserRedirect) {
+                if(qualityKey == key) openAuthor(e.secUid)
+            }
             catch(e: Exception) {
                 if(qualityKey == key) resolveError = "解析失败：${e.message?.take(120)?.ifBlank { null } ?: "请检查链接后重试"}"
             }
@@ -210,12 +253,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun openInput(text: String = "") {
         clipboard.clear()
         // The input card is laid out on the home page, so opening it must land there.
-        input = text.take(16000); error = null; inputVisible = true; if(!settings) tab = 0
+        input = text.take(16000); error = null; inputVisible = true; author.close(); tab = TAB_HOME
     }
     fun onShare(text: String) {
         settings = false
         openInput(text)
-        if(Links.detect(text) == null) error = "没有识别到 B 站、抖音、YouTube、微博或微信视频号视频"
+        if(Links.detect(text) == null && DouyinUserLinks.detect(text) == null) error = "没有识别到 B 站、抖音、YouTube、微博或微信视频号视频"
     }
     fun submit(): Boolean {
         val link = Links.detect(input)
@@ -233,7 +276,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val task = enqueue(link, info = info.takeIf { album }, selection = chosenQuality(), videoMode = videoMode, albumImageIndices = selected, albumOutputs = albumOutputs)
         if(album) context.prepareDownload(task.id, info)
         if(!start(task.id)) { error = store.get(task.id)?.error; return false }
-        inputVisible = false; tab = 1; settings = false
+        inputVisible = false; tab = TAB_DOWNLOADS
         prepareQuality(null)
         return true
     }
@@ -244,7 +287,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         clipboard.dismiss()
         val task=enqueue(info?.source ?: prompt.link,info)
         if(info != null) context.prepareDownload(task.id,info)
-        tab=1; settings=false
+        tab=TAB_DOWNLOADS
         return start(task.id)
     }
     private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null,
@@ -273,6 +316,40 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun resumeDownloads() {
         if(deleting) return
         runCatching { DownloadService.resume(context) }.onFailure { notice = "无法继续下载，请重试" }
+    }
+    // Douyin authors and follows.
+    internal val follows by lazy { FollowStore(java.io.File(context.filesDir, "follows.json")) }
+    internal val author by lazy { AuthorController(viewModelScope, follows, ::downloadWorks) { notice = it } }
+    internal val followUpdates by lazy { FollowUpdates(viewModelScope, follows) { notice = it } }
+    private var routedAuthorInput: String? = null
+    fun openAuthor(secUid: String) { author.open(secUid) }
+    /** A pasted Douyin user homepage link goes straight to the author page, once per paste. */
+    fun routeAuthorInput(text: String): Boolean {
+        val sec = DouyinUserLinks.detect(text) ?: return false
+        if(routedAuthorInput != text) { routedAuthorInput = text; prepareQuality(null); openAuthor(sec) }
+        return true
+    }
+    /** A work tapped on the author page opens in the work page. */
+    fun openWork(work: DouyinWork) {
+        author.close()
+        openInput(work.url)
+    }
+    /** Queues author works with default options: live items stay live photos, music saved separately. */
+    fun downloadWorks(works: List<DouyinWork>): Int {
+        var added = 0
+        works.forEach { work ->
+            val link = Links.fromUrl(work.url) ?: return@forEach
+            val task = store.add(link)
+            store.update(task.id) { it.copy(title = work.title, quality = if(work.isAlbum) "${work.imageCount} 张图片" else it.quality) }
+            revealTaskId = task.id
+            added++
+        }
+        if(added > 0) {
+            val id = revealTaskId
+            if(id != null) start(id)
+            notice = "已加入 $added 个作品到下载队列"
+        }
+        return added
     }
     fun setParallelism(count: Int) { store.setParallelism(count) }
     fun cancel(id: String) {

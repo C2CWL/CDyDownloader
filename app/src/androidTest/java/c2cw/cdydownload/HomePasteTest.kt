@@ -38,7 +38,7 @@ class HomePasteTest {
             assertEquals(count, vm.store.tasks.value.size)
             rule.runOnIdle { vm.inputVisible = false; clipboard.clearPrimaryClip() }
             rule.onNodeWithTag("downloadLinkInput").assertIsDisplayed().assertTextEquals(text)
-            rule.runOnIdle { vm.tab = 1 }
+            rule.runOnIdle { vm.tab = TAB_DOWNLOADS }
             rule.waitForIdle()
             rule.runOnIdle { vm.tab = 0 }
             rule.onNodeWithTag("downloadLinkInput").assertIsDisplayed().assertTextEquals(text)

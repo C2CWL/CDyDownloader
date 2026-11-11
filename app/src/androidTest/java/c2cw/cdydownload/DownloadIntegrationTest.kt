@@ -18,7 +18,7 @@ class DownloadIntegrationTest {
             var id = ""
             scenario.onActivity { activity ->
                 vm = ViewModelProvider(activity)[MainViewModel::class.java]
-                vm!!.tab = 1
+                vm!!.tab = TAB_DOWNLOADS
                 val prior = vm!!.store.tasks.value.firstOrNull { it.key == "BV1xx411c7mD:p1" }
                 if(prior != null) {
                     id = prior.id
@@ -61,7 +61,7 @@ class DownloadIntegrationTest {
             var id = ""
             scenario.onActivity { activity ->
                 vm = ViewModelProvider(activity)[MainViewModel::class.java]
-                vm!!.tab = 1
+                vm!!.tab = TAB_DOWNLOADS
                 val prior = vm!!.store.tasks.value.firstOrNull { it.key == "dy:7679018882060990022" }
                 if(prior != null) {
                     id = prior.id
@@ -105,7 +105,7 @@ class DownloadIntegrationTest {
                 val task = vm.store.tasks.value.first { t -> t.key == "dy:7685937709583519022" }
                 id = task.id
                 if(task.status == TaskStatus.PAUSED) vm.resumeDownloads() else if(!task.status.active && task.status != TaskStatus.COMPLETED) vm.retry(id)
-                vm.tab = 1
+                vm.tab = TAB_DOWNLOADS
             }
             val deadline = System.currentTimeMillis() + 600000
             while(vm.store.get(id)?.status?.active == true && System.currentTimeMillis() < deadline) Thread.sleep(500)

@@ -47,8 +47,7 @@ import androidx.compose.ui.unit.dp
             if(enabled) Glyph(if(expanded) "close" else "expand", modifier = Modifier.size(18.dp))
         }
         AnimatedVisibility(expanded && enabled,
-            enter = expandVertically(spring(dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness)),
-            exit = shrinkVertically(spring(dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness))) {
+            enter = UiMotion.expand, exit = UiMotion.collapse) {
             Column(Modifier.fillMaxWidth().selectableGroup().padding(bottom = 8.dp)) {
                 options.forEach { item ->
                     Row(Modifier.fillMaxWidth().testTag("$tag-${item.id.ifEmpty { "auto" }}")

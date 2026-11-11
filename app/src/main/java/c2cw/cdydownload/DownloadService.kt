@@ -54,6 +54,8 @@ class DownloadService : Service() {
     private val sizeProbeSlots = Semaphore(4)
     private val notifications get() = getSystemService(NotificationManager::class.java)
     private fun saveFolder(kind: SaveKind) = readSaveFolder(getSharedPreferences("settings", 0), kind)
+    private fun saveTree(kind: SaveKind) = readSaveTree(getSharedPreferences("settings", 0), kind)
+    private fun saveLabel(kind: SaveKind) = saveLocationLabel(kind, saveFolder(kind), saveTree(kind), SaveTree::label)
 
     override fun onCreate() {
         super.onCreate()
@@ -173,7 +175,7 @@ class DownloadService : Service() {
             val uri = publish(audio, info.title, task.id, mime = targetMime, extension = extension, audio = true, author = info.author, platform = info.source.platform)
             store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
                 mimeType = targetMime, resolution = "音频", fps = 0f, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
-            notifyResult(task.id, info.title, "音频已保存到 ${mediaLocationLabel("Music", saveFolder(SaveKind.MUSIC))}", uri)
+            notifyResult(task.id, info.title, "音频已保存到 ${saveLabel(SaveKind.MUSIC)}", uri)
             return
         }
 
@@ -216,7 +218,7 @@ class DownloadService : Service() {
         val measuredFps = savedFrameRate(this@DownloadService, uri.toString())
         store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
             resolution = measured.ifBlank { it.resolution }, fps = measuredFps.takeIf { it > 0 } ?: it.fps, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
-        notifyResult(task.id, info.title, "已保存到 ${mediaLocationLabel("Download", saveFolder(SaveKind.VIDEO))}", uri)
+        notifyResult(task.id, info.title, "已保存到 ${saveLabel(SaveKind.VIDEO)}", uri)
     }
 
     private suspend fun downloadAlbum(task: DownloadTask, info: VideoInfo, dir: File, progress: TaskTransferProgress) {
@@ -303,7 +305,7 @@ class DownloadService : Service() {
                 outputUris = published.map(Uri::toString), mimeType = contentResolver.getType(published.first()) ?: "image/jpeg",
                 albumMode = AlbumMode.IMAGES, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
         } catch(e: Exception) {
-            published.forEach { runCatching { contentResolver.delete(it, null, null) } }
+            published.forEach { runCatching { deleteSavedOutput(this, it.toString()) } }
             throw e
         }
         val summary = when(task.albumContent) {
@@ -426,6 +428,9 @@ class DownloadService : Service() {
             indexSuffix = indexSuffix,
             extension = extension
         )
+        val kind = when { image -> SaveKind.IMAGE; audio -> SaveKind.MUSIC; else -> SaveKind.VIDEO }
+        val tree = saveTree(kind)
+        if(tree.isNotBlank()) return publishToTree(file, tree, mime, displayName)
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Video.Media.MIME_TYPE, mime)
@@ -461,6 +466,29 @@ class DownloadService : Service() {
             return uri
         } catch(e: Exception) {
             contentResolver.delete(uri, null, null)
+            throw e
+        }
+    }
+    /** Same copy as MediaStore, into a folder picked with the system picker. */
+    private suspend fun publishToTree(file: File, tree: String, mime: String, displayName: String): Uri {
+        val uri = SaveTree.create(contentResolver, tree, mime, displayName)
+        try {
+            val stream = try { contentResolver.openOutputStream(uri, "w") } catch(e: SecurityException) { error(SAVE_TREE_LOST) }
+            stream?.use { output ->
+                file.inputStream().use { input ->
+                    val buffer = ByteArray(128*1024)
+                    while(true) {
+                        currentCoroutineContext().ensureActive()
+                        val n = input.read(buffer)
+                        if(n < 0) break
+                        output.write(buffer, 0, n)
+                    }
+                }
+            } ?: error("无法写入所选文件夹")
+            currentCoroutineContext().ensureActive()
+            return uri
+        } catch(e: Exception) {
+            runCatching { deleteSavedOutput(this, uri.toString()) }
             throw e
         }
     }

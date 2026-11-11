@@ -53,7 +53,7 @@ class QueueControlsTest {
             originalLimit = vm.store.parallelism.value
             originallyPaused = vm.store.paused.value
             check(vm.store.tasks.value.none { it.status.active }) { "Do not interrupt user downloads in this UI test" }
-            vm.tab = 1
+            vm.tab = TAB_DOWNLOADS
             // Queue a unique record without initiating network traffic.
             val task = vm.store.add(Links.detect("https://www.bilibili.com/video/BV1xx411c7mD?p=9876")!!)
             id = task.id
@@ -100,7 +100,7 @@ class QueueControlsTest {
                 ids += task.id
                 vm.store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, title = "scroll fixture $index") }
             }
-            vm.settings = false; vm.tab = 1
+            vm.settings = false; vm.tab = TAB_DOWNLOADS
         }
         try {
             rule.waitForIdle()

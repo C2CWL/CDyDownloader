@@ -38,3 +38,46 @@ internal fun mediaRelativePath(root: String, folder: String): String =
 
 internal fun mediaLocationLabel(root: String, folder: String): String =
     if(folder.isBlank()) root else "$root / $folder"
+
+internal const val SAVE_TREE_VIDEO = "saveTreeVideo"
+internal const val SAVE_TREE_IMAGE = "saveTreeImage"
+internal const val SAVE_TREE_MUSIC = "saveTreeMusic"
+
+internal fun saveTreeKey(kind: SaveKind) = when(kind) {
+    SaveKind.VIDEO -> SAVE_TREE_VIDEO
+    SaveKind.IMAGE -> SAVE_TREE_IMAGE
+    SaveKind.MUSIC -> SAVE_TREE_MUSIC
+}
+
+internal fun saveFolderKey(kind: SaveKind) = when(kind) {
+    SaveKind.VIDEO -> SAVE_FOLDER_VIDEO
+    SaveKind.IMAGE -> SAVE_FOLDER_IMAGE
+    SaveKind.MUSIC -> SAVE_FOLDER_MUSIC
+}
+
+internal fun saveRoot(kind: SaveKind) = when(kind) {
+    SaveKind.VIDEO -> "Download"
+    SaveKind.IMAGE -> "Pictures"
+    SaveKind.MUSIC -> "Music"
+}
+
+/** Folder picked with the system file picker (a SAF tree URI), or blank when MediaStore folders are used. */
+internal fun readSaveTree(prefs: SharedPreferences, kind: SaveKind): String = prefs.getString(saveTreeKey(kind), null).orEmpty()
+
+/**
+ * Readable label for a tree document id such as `primary:Pictures/旅行` or `1A2B-3C4D:DCIM`.
+ * Returns null when the id has an unknown shape, so the caller can show a generic label.
+ */
+internal fun treeDocumentLabel(documentId: String): String? {
+    val volume = documentId.substringBefore(':', "")
+    if(volume.isBlank() || !documentId.contains(':')) return null
+    val path = documentId.substringAfter(':').trim('/').replace("/", " / ")
+    val root = if(volume.equals("primary", true)) "内部存储" else "存储卡"
+    return if(path.isBlank()) root else "$root / $path"
+}
+
+/** Location shown in settings and notifications. */
+internal fun saveLocationLabel(kind: SaveKind, folder: String, tree: String, treeLabel: (String) -> String?): String =
+    if(tree.isNotBlank()) treeLabel(tree) ?: "所选文件夹" else mediaLocationLabel(saveRoot(kind), folder)
+
+internal const val SAVE_TREE_LOST = "没有所选文件夹的写入权限，可能已被系统收回或文件夹已删除。请到「设置 › 保存位置」重新选择文件夹"

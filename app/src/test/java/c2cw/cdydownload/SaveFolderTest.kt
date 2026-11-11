@@ -20,3 +20,19 @@ class SaveFolderTest {
         assertEquals("仅视频", resolveSaveFolder(hasNew = true, stored = "仅视频", hasLegacy = true, legacy = "旧目录"))
     }
 }
+
+class SaveTreeLabelTest {
+    @Test fun treeDocumentIdsBecomeReadableLabels() {
+        assertEquals("内部存储 / Pictures / 旅行", treeDocumentLabel("primary:Pictures/旅行"))
+        assertEquals("内部存储", treeDocumentLabel("primary:"))
+        assertEquals("存储卡 / DCIM", treeDocumentLabel("1A2B-3C4D:DCIM"))
+        assertEquals(null, treeDocumentLabel("raw"))
+    }
+
+    @Test fun pickedFolderWinsOverTypedName() {
+        assertEquals("内部存储 / Movies", saveLocationLabel(SaveKind.VIDEO, "旧名称", "content://tree") { "内部存储 / Movies" })
+        assertEquals("所选文件夹", saveLocationLabel(SaveKind.VIDEO, "旧名称", "content://tree") { null })
+        assertEquals("Pictures / 旧名称", saveLocationLabel(SaveKind.IMAGE, "旧名称", "") { "unused" })
+        assertEquals("Music", saveLocationLabel(SaveKind.MUSIC, "", "") { "unused" })
+    }
+}
