@@ -128,7 +128,7 @@ internal suspend fun requestHttps(client: OkHttpClient, initial: String, accept:
     repeat(6) {
         require(UpdateProtocol.https(url)) { "更新地址必须使用 HTTPS" }
         val call = client.newCall(Request.Builder().url(url).header("Accept", accept)
-            .header("Cache-Control", "no-cache").header("User-Agent", "DBDown-Updater/1").build())
+            .header("Cache-Control", "no-cache").header("User-Agent", "CDyDownloader-Updater/1").build())
         val response = suspendCancellableCoroutine<Response> { continuation ->
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {

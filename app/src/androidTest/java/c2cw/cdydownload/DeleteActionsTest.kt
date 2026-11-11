@@ -21,9 +21,9 @@ class DeleteActionsTest {
     private val resolver get() = rule.activity.contentResolver
     private fun makePicture(): Uri {
         val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "DBDown-test-${System.nanoTime()}.png")
+            put(MediaStore.Images.Media.DISPLAY_NAME, "CDy-test-${System.nanoTime()}.png")
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/逗逼下载器")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CDy下载器")
         }
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
         val bitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)

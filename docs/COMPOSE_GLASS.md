@@ -1,6 +1,6 @@
 # Jetpack Compose 玻璃效果复刻指南
 
-本文整理 DBDown 0.6.17 的实际实现，供其他 Android Compose 项目复刻。包含底栏玻璃胶囊、普通玻璃提示卡片、顶部渐变模糊，以及跟手拖动时的处理。实现基于 Haze 1.7.3；下面的参数是本项目当前取值，不代表其他版本库的默认行为。
+本文整理 CDy下载器的实际实现，供其他 Android Compose 项目复刻。包含底栏玻璃胶囊、普通玻璃提示卡片、顶部渐变模糊，以及跟手拖动时的处理。实现基于 Haze 1.7.3；下面的参数是本项目当前取值，不代表其他版本库的默认行为。
 
 **最重要的原则：底栏只模糊一次，底栏底色与选中胶囊底色互斥绘制，文字和图标最后绘制。** 胶囊是同一块玻璃上的选中色区域，不是盖在另一块玻璃上的第二层玻璃。
 
@@ -174,14 +174,14 @@ val progress by remember(pager) {
 
 不要只根据 `currentPage` 给胶囊做独立的 `animateFloatAsState`。页面停在半途时，胶囊也应停在对应位置；否则动画会追赶手指。
 
-DBDown 的拖动适配器把胶囊位移转换成 Pager 位移：
+CDy下载器的拖动适配器把胶囊位移转换成 Pager 位移：
 
 ```text
 换算比例 = (Pager 页面宽度 + 页面间距) / 胶囊行程
 Pager 位移 = 手指横向位移 × 换算比例
 ```
 
-手势在 `pager.scroll(dragPriority)` 内调用 `scrollBy`，复用 Pager 的滚动互斥机制，接管正在进行的动画。完整适配器见 [FloatingTabs.kt](../app/src/main/java/com/daxiaamu/dbdown/FloatingTabs.kt) 中的 `CapsuleDragState`。
+手势在 `pager.scroll(dragPriority)` 内调用 `scrollBy`，复用 Pager 的滚动互斥机制，接管正在进行的动画。完整适配器见 [FloatingTabs.kt](../app/src/main/java/c2cw/cdydownload/FloatingTabs.kt) 中的 `CapsuleDragState`。
 
 - 松手速度超过 180 dp/s 时按方向切页，否则选最近的一页。
 - `reverseDirection = rtl`，绘制胶囊时也镜像坐标。
@@ -208,7 +208,7 @@ Box(modifier.shadow(4.dp, shape).clip(shape)) {
 }
 ```
 
-若再绘制带底色或 elevation 的 `Surface`，可能把玻璃盖住，或让阴影出现在玻璃内部。当前项目的封装是 [Ui.kt](../app/src/main/java/com/daxiaamu/dbdown/Ui.kt) 中的 `GlassPrompt`。
+若再绘制带底色或 elevation 的 `Surface`，可能把玻璃盖住，或让阴影出现在玻璃内部。当前项目的封装是 [Ui.kt](../app/src/main/java/c2cw/cdydownload/Ui.kt) 中的 `GlassPrompt`。
 
 ### 提示卡片上滑关闭
 
@@ -218,7 +218,7 @@ Box(modifier.shadow(4.dp, shape).clip(shape)) {
 
 当前关闭条件为上滑超过 `min(48 dp, 卡片高度 × 0.4)`，或上滑超过 8 dp 且速度超过 800 dp/s。回弹动画允许新触摸打断；提示内容解析完成时沿用同一事件 key，不重置手指位置。新提示到达时才重置。
 
-完整实现见 [HeadsUpSwipe.kt](../app/src/main/java/com/daxiaamu/dbdown/HeadsUpSwipe.kt)。
+完整实现见 [HeadsUpSwipe.kt](../app/src/main/java/c2cw/cdydownload/HeadsUpSwipe.kt)。
 
 ## 顶部栏的柔和模糊边界
 
@@ -273,11 +273,11 @@ Box(
 
 本项目对应测试：
 
-- [TabGlassAppearanceTest.kt](../app/src/androidTest/java/com/daxiaamu/dbdown/TabGlassAppearanceTest.kt)：三个位置的单层染色像素检查。
-- [TabGestureTest.kt](../app/src/androidTest/java/com/daxiaamu/dbdown/TabGestureTest.kt)：跟手、回弹、拖动中断、动画中途再次点击和状态同步。
-- [HeadsUpAppearanceTest.kt](../app/src/androidTest/java/com/daxiaamu/dbdown/HeadsUpAppearanceTest.kt)：提示卡片的显示、上滑与回弹。
+- [TabGlassAppearanceTest.kt](../app/src/androidTest/java/c2cw/cdydownload/TabGlassAppearanceTest.kt)：三个位置的单层染色像素检查。
+- [TabGestureTest.kt](../app/src/androidTest/java/c2cw/cdydownload/TabGestureTest.kt)：跟手、回弹、拖动中断、动画中途再次点击和状态同步。
+- [HeadsUpAppearanceTest.kt](../app/src/androidTest/java/c2cw/cdydownload/HeadsUpAppearanceTest.kt)：提示卡片的显示、上滑与回弹。
 
-0.6.17 发布前，在连接的一加设备上验证了底栏手势与单层染色；在 X9 Pro 的真实下载列表上检查了拖动中间状态、滚动背景和加深后的主题色。其他项目仍应验证自身的屏幕密度、亮暗主题、RTL、大字体和系统动画设置，不能直接把这里的设备结果视为全机型保证。
+该实现合入前，在连接的一加设备上验证了底栏手势与单层染色；在 X9 Pro 的真实下载列表上检查了拖动中间状态、滚动背景和加深后的主题色。其他项目仍应验证自身的屏幕密度、亮暗主题、RTL、大字体和系统动画设置，不能直接把这里的设备结果视为全机型保证。
 
 ## 移植顺序
 
@@ -288,4 +288,4 @@ Box(
 5. 加入整体按压缩放，保留标签语义与清晰的前景内容。
 6. 用真实列表和像素测试检查，最后再按目标产品调整尺寸、颜色与模糊强度。
 
-本文提取示例用于说明组件组织方式；完整集成与验证过的应用代码以本仓库 0.6.17 源码为准。
+本文提取示例用于说明组件组织方式；完整集成与验证过的应用代码以本仓库源码为准。

@@ -33,7 +33,7 @@ class UpdateSourceTest {
                 }
             }
             val client = UpdateSource.client.newBuilder().sslSocketFactory(TestTls.socketFactory, TestTls.trustManager).build()
-            val source = UpdateSource("daxiaamu/DBdown", "main", client) { path ->
+            val source = UpdateSource("C2CWL/CDyDownloader", "main", client) { path ->
                 (0..4).map { i -> MetadataSource(server.url("/$i/$path").toString(),
                     listOf("authority", "github", "jsdelivr", "jsdelivr", "statically")[i]) }
             }

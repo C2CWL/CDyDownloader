@@ -127,7 +127,7 @@ class UpdateManager internal constructor(private val context: Context,
                 }
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.updates", file)
                 activity.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
-                    .apply { clipData = ClipData.newRawUri("DBDown 更新", uri) }.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                    .apply { clipData = ClipData.newRawUri("CDy下载器 更新", uri) }.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
             } catch(e: CancellationException) { throw e }
             catch(e: Exception) { _state.update { it.copy(stage = UpdateStage.IDLE, error = e.message ?: "更新失败，请重试") } }
         }

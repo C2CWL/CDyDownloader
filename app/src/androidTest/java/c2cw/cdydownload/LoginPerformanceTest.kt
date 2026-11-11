@@ -48,7 +48,7 @@ class LoginPerformanceTest {
                 Thread.sleep(100)
             }
             val p95 = samples.sorted()[28]
-            android.util.Log.i("DBDownPerf", "Bili main-thread post latency: p95=" + p95 + "ms max=" + samples.max() + "ms")
+            android.util.Log.i("CDyPerf", "Bili main-thread post latency: p95=" + p95 + "ms max=" + samples.max() + "ms")
             assertTrue("Main thread stalls while displaying login: " + p95 + "ms", p95 < 250)
             val screenshot = instrumentation.uiAutomation.takeScreenshot()
             java.io.File(context.getExternalFilesDir(null), "bili-layout-fixed.png").outputStream().use {
@@ -67,7 +67,7 @@ class LoginPerformanceTest {
     @Test fun applicationIdentityAndLocalizedNamesAreCorrect() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("c2cw.cdydownload", context.packageName)
-        for((language, name) in listOf("zh" to "逗逼下载器", "en" to "DBDown")) {
+        for((language, name) in listOf("zh" to "CDy下载器", "en" to "CDy Downloader")) {
             val config = android.content.res.Configuration(context.resources.configuration)
             config.setLocale(java.util.Locale.forLanguageTag(language))
             assertEquals(name, context.createConfigurationContext(config).getString(R.string.app_name))

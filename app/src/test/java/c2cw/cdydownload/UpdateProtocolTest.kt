@@ -61,7 +61,7 @@ class UpdateProtocolTest {
         assertFalse(UpdateProtocol.https("https://user:secret@host/path"))
     }
     @Test fun sourcesHaveOneAuthorityAndEnoughHttpsEndpoints() {
-        val sources = UpdateSource("daxiaamu/DBdown", "main").sources("updates/stable/latest.json")
+        val sources = UpdateSource("C2CWL/CDyDownloader", "main").sources("updates/stable/latest.json")
         assertTrue(sources.size >= 5)
         assertEquals(1, sources.count { it.family == "authority" })
         assertTrue(sources.all { UpdateProtocol.https(it.url) })

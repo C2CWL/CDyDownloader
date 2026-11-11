@@ -37,7 +37,7 @@ internal object YoutubeClients {
             check(response.isSuccessful)
             val raw=response.body!!.byteStream().readNBytes(4*1024*1024+1)
             check(raw.size<=4*1024*1024)
-            JSONObject(raw.toString(Charsets.UTF_8)).put("_dbdownUa",profile.userAgent).put("_dbdownSource",profile.name)
+            JSONObject(raw.toString(Charsets.UTF_8)).put("_cdyUa",profile.userAgent).put("_cdySource",profile.name)
         }
     }
 }

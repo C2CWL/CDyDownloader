@@ -109,7 +109,7 @@ class DownloadService : Service() {
             throw e
         } catch(e: Exception) {
             currentCoroutineContext().ensureActive()
-            if(applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) android.util.Log.e("DBDownload", "Download failed", e)
+            if(applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) android.util.Log.e("CDyDownload", "Download failed", e)
             if(store.get(task.id)?.status?.active == true) {
                 val message = when(e) {
                     is java.net.UnknownHostException -> "网络不可用，请联网后重试"

@@ -1,4 +1,4 @@
-"""Generate DBDown update metadata after a human has published one signed Release APK.
+"""Generate CDyDownloader update metadata after a human has published one signed Release APK.
 No APK uploads, Release creation, or forced-policy mutations are performed here.
 """
 import concurrent.futures
@@ -43,7 +43,7 @@ def secure_url(url):
 
 def fetch(url, path=None, limit=MAX_METADATA, expected_size=None):
     secure_url(url)
-    headers = {"User-Agent": "DBDown-Release-Updater/1", "Cache-Control": "no-cache"}
+    headers = {"User-Agent": "CDyDownloader-Release-Updater/1", "Cache-Control": "no-cache"}
     if urllib.parse.urlsplit(url).hostname == "api.github.com" and os.environ.get("GH_TOKEN"):
         headers["Authorization"] = "Bearer " + os.environ["GH_TOKEN"]
     req = urllib.request.Request(url, headers=headers)

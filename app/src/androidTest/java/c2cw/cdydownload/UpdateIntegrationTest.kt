@@ -42,7 +42,7 @@ class UpdateIntegrationTest {
             .put("policyRevision", 1).put("versionCode", current + 1).put("versionName", "更新测试版本")
             .put("maxForcedVersionCode", if(forced) current else 0)
             .put("publishedAt", "2026-08-12T08:00:00Z").put("changelog",
-                "## 改进\n**重要说明** [官网](https://github.com/daxiaamu/DBdown)\n" + "- 长日志测试\n".repeat(120))
+                "## 改进\n**重要说明** [官网](https://github.com/C2CWL/CDyDownloader)\n" + "- 长日志测试\n".repeat(120))
             .put("sha256", "a".repeat(64)).put("size", 10)
             .put("urls", JSONArray((1..5).map { "https://cdn$it.example/update.apk" })).toString()
         val hash = UpdateProtocol.sha256(manifest.toByteArray())

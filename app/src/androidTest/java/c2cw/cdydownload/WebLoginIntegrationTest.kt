@@ -17,20 +17,20 @@ class WebLoginIntegrationTest {
     @Test fun webCookiesReachDownloaderWithDomainAndPathIsolationAndServerDeletion() {
         val manager = CookieManager.getInstance()
         val jar = PlatformCookieJar()
-        val url = "https://www.douyin.com/dbdownloader-test/probe".toHttpUrl()
+        val url = "https://www.douyin.com/cdydownloader-test/probe".toHttpUrl()
         try {
-            manager.setCookie(url.toString(), "db_test=fixture; Path=/dbdownloader-test/; Secure; HttpOnly")
+            manager.setCookie(url.toString(), "cdy_test=fixture; Path=/cdydownloader-test/; Secure; HttpOnly")
             manager.flush()
-            assertEquals("fixture", jar.loadForRequest(url).first { it.name == "db_test" }.value)
-            assertFalse(jar.loadForRequest("https://www.douyin.com/".toHttpUrl()).any { it.name == "db_test" })
-            assertFalse(jar.loadForRequest("https://api.bilibili.com/".toHttpUrl()).any { it.name == "db_test" })
-            assertFalse(jar.loadForRequest("https://www.douyin.com.evil.example/".toHttpUrl()).any { it.name == "db_test" })
-            jar.saveFromResponse(url, listOf(Cookie.parse(url, "db_test=updated; Path=/dbdownloader-test/; Secure")!!))
-            assertEquals("updated", jar.loadForRequest(url).first { it.name == "db_test" }.value)
-            jar.saveFromResponse(url, listOf(Cookie.parse(url, "db_test=; Path=/dbdownloader-test/; Max-Age=0; Secure")!!))
-            assertFalse(jar.loadForRequest(url).any { it.name == "db_test" })
+            assertEquals("fixture", jar.loadForRequest(url).first { it.name == "cdy_test" }.value)
+            assertFalse(jar.loadForRequest("https://www.douyin.com/".toHttpUrl()).any { it.name == "cdy_test" })
+            assertFalse(jar.loadForRequest("https://api.bilibili.com/".toHttpUrl()).any { it.name == "cdy_test" })
+            assertFalse(jar.loadForRequest("https://www.douyin.com.evil.example/".toHttpUrl()).any { it.name == "cdy_test" })
+            jar.saveFromResponse(url, listOf(Cookie.parse(url, "cdy_test=updated; Path=/cdydownloader-test/; Secure")!!))
+            assertEquals("updated", jar.loadForRequest(url).first { it.name == "cdy_test" }.value)
+            jar.saveFromResponse(url, listOf(Cookie.parse(url, "cdy_test=; Path=/cdydownloader-test/; Max-Age=0; Secure")!!))
+            assertFalse(jar.loadForRequest(url).any { it.name == "cdy_test" })
         } finally {
-            manager.setCookie(url.toString(), "db_test=; Path=/dbdownloader-test/; Max-Age=0; Secure")
+            manager.setCookie(url.toString(), "cdy_test=; Path=/cdydownloader-test/; Max-Age=0; Secure")
             manager.flush()
         }
     }

@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 /** Explicit opt-in: these checks depend on YouTube availability and are not part of offline CI. */
 class YoutubeOnlineTest {
     @Test fun requestedVideo() {
-        val input=System.getenv("DBDOWN_YOUTUBE_INPUT")
+        val input=System.getenv("CDY_YOUTUBE_INPUT")
         assumeTrue(!input.isNullOrBlank())
         check(input!!)
     }
@@ -21,7 +21,7 @@ class YoutubeOnlineTest {
     @Test fun shorts() = check("https://www.youtube.com/shorts/-9OM3w3TWUs")
     @Test fun bareId() = check("BLKegH19KGI")
     private fun check(input: String, require4k: Boolean = false) {
-        assumeTrue(System.getenv("DBDOWN_YOUTUBE_ONLINE") == "1")
+        assumeTrue(System.getenv("CDY_YOUTUBE_ONLINE") == "1")
         val info = YoutubeResolver.resolve(Links.detect(input)!!) {}
         if(info.source.key == "yt:t2dhvFTktk4") {
             assertTrue(info.quality,info.quality.contains("HDR"))
@@ -34,7 +34,7 @@ class YoutubeOnlineTest {
             assertNotNull(info.audio)
             assertTrue(info.resolution, Regex("[0-9]+").findAll(info.resolution).map { it.value.toInt() }.minOrNull()!! >= 2160)
         }
-        val fixtureDir = System.getenv("DBDOWN_YOUTUBE_FIXTURES")?.let { java.io.File(it).apply { mkdirs() } }
+        val fixtureDir = System.getenv("CDY_YOUTUBE_FIXTURES")?.let { java.io.File(it).apply { mkdirs() } }
         val client = OkHttpClient.Builder().callTimeout(45, TimeUnit.SECONDS).build()
         listOfNotNull(info.video, info.audio).forEachIndexed { index, url ->
             client.newCall(Request.Builder().url(url).header("Range", if(fixtureDir == null) "bytes=0-65535" else "bytes=0-4194303")

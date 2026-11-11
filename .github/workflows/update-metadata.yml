@@ -11,7 +11,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: dbdown-update-metadata
+  group: cdy-update-metadata
   cancel-in-progress: false
 jobs:
   metadata:
