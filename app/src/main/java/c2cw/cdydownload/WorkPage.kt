@@ -1,16 +1,12 @@
 package c2cw.cdydownload
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -38,31 +34,22 @@ import java.util.Date
 import java.util.Locale
 
 /** 首页: paste a link, see the work, choose what to keep, download. */
-@Composable internal fun HomePage(vm: MainViewModel, topInset: Dp, submit: () -> Unit) {
+@Composable internal fun HomePage(vm: MainViewModel, topInset: Dp, onQueued: () -> Unit) {
     val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
     val detected = remember(vm.input) { Links.detect(vm.input) }
     val preview = vm.preview
-    val showAction = preview != null || (detected != null && vm.qualityLoading)
-    Box(Modifier.fillMaxSize().testTag("homePage")) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = topInset)
-            .padding(horizontal = 16.dp)
-            .padding(bottom = if(typing) 12.dp else BottomBarSpace + if(showAction) 70.dp else 8.dp).imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(top = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                if(!vm.inputVisible) ClipboardSuggestionCard(vm)
-                LinkInputCard(vm, detected)
-                preview?.let { WorkResult(it, vm) }
-                vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-            }
-        }
-        AnimatedVisibility(showAction && !typing, Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically(tween(UiMotion.Medium, easing = UiMotion.Emphasized)) { it / 2 } + fadeIn(UiMotion.fade()),
-            exit = slideOutVertically(tween(UiMotion.Fast)) { it / 2 } + fadeOut(tween(UiMotion.Fast))) {
-            Box(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(horizontal = 16.dp)
-                .padding(bottom = BottomBarSpace + 4.dp)) {
-                DownloadAction(vm, detected, submit)
-            }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = topInset)
+        .padding(horizontal = 16.dp)
+        .padding(bottom = if(typing) 12.dp else BottomBarSpace + 8.dp).imePadding()
+        .testTag("homePage"),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(top = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if(!vm.inputVisible) ClipboardSuggestionCard(vm)
+            LinkInputCard(vm, detected)
+            preview?.let { WorkResult(it, vm) { index -> if(vm.downloadAlbumItem(index)) onQueued() } }
+            vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+            DownloadAction(vm, detected) { if(vm.submit()) onQueued() }
         }
     }
 }
@@ -82,6 +69,18 @@ import java.util.Locale
         }, fontWeight = FontWeight.SemiBold, color = if(canDownload)
             MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.disabledOnPrimaryButton)
     }
+}
+
+internal fun albumContentLabel(content: AlbumContent, hasMusic: Boolean) = when(content) {
+    AlbumContent.ALL -> if(hasMusic) "图片和配乐" else "下载选中"
+    AlbumContent.IMAGES -> "仅图片"
+    AlbumContent.MUSIC -> "仅配乐"
+}
+
+internal fun albumItemDownloadNotice(output: AlbumOutput) = when(output) {
+    AlbumOutput.MOTION -> "已开始下载这张实况"
+    AlbumOutput.STATIC -> "已开始下载这张静图"
+    AlbumOutput.VIDEO -> "已开始下载这段视频"
 }
 
 /** "下载选中（6 张，其中 4 张存实况）" */
@@ -206,7 +205,7 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
     }
 }
 
-@Composable private fun WorkResult(preview: MediaPreview, vm: MainViewModel) {
+@Composable private fun WorkResult(preview: MediaPreview, vm: MainViewModel, onDownloadItem: (Int) -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().testTag("previewCard"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if(preview.cover.isNotBlank()) Box(Modifier.fillMaxWidth().height(210.dp).clip(CardShape)
@@ -237,7 +236,7 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
         )
         if(stats.isNotEmpty()) Text(stats.joinToString("  ·  "), style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant)
-        if(preview.isAlbum) AlbumSection(preview, vm) else VideoOptions(vm)
+        if(preview.isAlbum) AlbumSection(preview, vm, onDownloadItem) else VideoOptions(vm)
     }
 }
 
@@ -259,7 +258,7 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
     }
 }
 
-@Composable private fun AlbumSection(preview: MediaPreview, vm: MainViewModel) {
+@Composable private fun AlbumSection(preview: MediaPreview, vm: MainViewModel, onDownloadItem: (Int) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val liveIndices = preview.imageVideos.indices.filter { preview.imageVideos[it] != null }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -270,8 +269,7 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         AlbumContent.entries.filter { it != AlbumContent.MUSIC || preview.hasMusic }.forEach { content ->
             FilterChip(selected = vm.albumContent == content, onClick = { vm.albumContent = content },
-                label = { Text(when(content) { AlbumContent.ALL -> if(preview.hasMusic) "图片和配乐" else "下载选中"
-                    AlbumContent.IMAGES -> "只要图片"; AlbumContent.MUSIC -> "只要配乐" }) },
+                label = { Text(albumContentLabel(content, preview.hasMusic)) },
                 shape = RoundedCornerShape(10.dp), modifier = Modifier.testTag("album-${content.name}"))
         }
     }
@@ -295,7 +293,7 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.testTag("albumGrid")) {
         preview.images.indices.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { index -> AlbumTile(preview, index, vm, Modifier.weight(1f)) }
+                row.forEach { index -> AlbumTile(preview, index, vm, Modifier.weight(1f), onDownloadItem) }
                 if(row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -304,7 +302,7 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
         Text("至少选择一项内容才能下载", color = colors.error, style = MaterialTheme.typography.bodySmall)
 }
 
-@Composable private fun AlbumTile(preview: MediaPreview, index: Int, vm: MainViewModel, modifier: Modifier) {
+@Composable private fun AlbumTile(preview: MediaPreview, index: Int, vm: MainViewModel, modifier: Modifier, onDownload: (Int) -> Unit) {
     val checked = index in vm.selectedAlbumImages
     val live = preview.imageVideos.getOrNull(index) != null
     Box(modifier.aspectRatio(0.75f).clip(TileShape).background(MaterialTheme.colorScheme.surfaceContainer)
@@ -320,6 +318,13 @@ internal fun albumDownloadLabel(preview: MediaPreview, content: AlbumContent, in
                 tags = listOf("albumOutput-$index-MOTION", "albumOutput-$index-STATIC")) {
                 vm.chooseAlbumOutput(index, if(it == 0) AlbumOutput.MOTION else AlbumOutput.STATIC)
             }
+        }
+        Box(Modifier.align(Alignment.BottomEnd).padding(8.dp).size(32.dp).clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.55f))
+            .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+            .clickable { onDownload(index) }.testTag("albumImageDownload-$index"),
+            contentAlignment = Alignment.Center) {
+            Glyph("download", "下载这一张", Modifier.size(18.dp), Color.White)
         }
     }
 }

@@ -290,8 +290,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         tab=TAB_DOWNLOADS
         return start(task.id)
     }
+    /** Queue only this album item. Keeps the current selection and stays on the work page. */
+    fun downloadAlbumItem(index: Int): Boolean {
+        val link = Links.detect(input)
+        val info = resolvedInfo?.takeIf { link != null && qualityKey == link.key }
+        if(link == null || info == null) { error = resolveError ?: "请等待作品解析完成"; return false }
+        val queued = albumItemDownload(index, info.images.size, albumOutputs)
+        if(queued == null) { error = "没有这一张图"; return false }
+        val (indices, outputs) = queued
+        val task = enqueue(link, info = info, albumContent = AlbumContent.IMAGES,
+            albumImageIndices = indices, albumOutputs = outputs)
+        context.prepareDownload(task.id, info)
+        if(!start(task.id)) { error = store.get(task.id)?.error; return false }
+        notice = albumItemDownloadNotice(albumOutput(index, info.imageVideos, albumOutputs))
+        return true
+    }
     private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null,
-        videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumImageIndices: List<Int>? = null, albumOutputs: Map<Int, AlbumOutput> = emptyMap()): DownloadTask {
+        videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumContent: AlbumContent = this.albumContent,
+        albumImageIndices: List<Int>? = null, albumOutputs: Map<Int, AlbumOutput> = emptyMap()): DownloadTask {
         val task = store.add(link, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices, albumOutputs = albumOutputs)
         if(info != null) store.update(task.id) {
             it.copy(title = info.title, quality = info.quality, resolution = info.resolution)

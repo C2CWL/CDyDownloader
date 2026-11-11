@@ -161,7 +161,7 @@ private val paths = mapOf(
                         snapAnimationSpec = UiMotion.settle())
                 ) { index ->
                     when(index) {
-                        TAB_HOME -> HomePage(vm, topInset) { if(vm.submit()) requestNotifications() }
+                        TAB_HOME -> HomePage(vm, topInset) { requestNotifications() }
                         TAB_FOLLOW -> FollowPage(vm, topInset)
                         TAB_DOWNLOADS -> DownloadsPage(tasks, vm, requestNotifications, topInset)
                         else -> SettingsPage(vm, topInset) { enabled -> vm.setClipboard(enabled); if(enabled) checkClipboard() }
