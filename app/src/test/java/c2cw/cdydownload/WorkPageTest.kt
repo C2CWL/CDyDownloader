@@ -4,15 +4,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WorkPageTest {
-    private fun album(hasMusic: Boolean, videos: List<String?> = emptyList()) = MediaPreview(
+    private fun album(hasMusic: Boolean, imageVideos: List<String?>) = MediaPreview(
         platform = Platform.DOUYIN,
         title = "图集",
         author = "示例作者",
         cover = "https://example.com/cover.jpg",
-        images = List(videos.size.coerceAtLeast(2)) { "https://example.com/$it.jpg" },
+        images = imageVideos.indices.map { "https://example.com/$it.jpg" },
         quality = "",
         hasMusic = hasMusic,
-        imageVideos = videos.ifEmpty { listOf("https://example.com/0.mp4", null) }
+        likes = -1,
+        comments = -1,
+        shares = -1,
+        publishedAt = 0,
+        referer = "https://www.douyin.com/",
+        userAgent = "test",
+        imageVideos = imageVideos
     )
 
     @Test fun contentLabelsUseJinInsteadOfZhiYao() {
@@ -23,13 +29,17 @@ class WorkPageTest {
     }
 
     @Test fun selectedDownloadButtonMentionsLivePhotosAndMusic() {
-        val preview = album(hasMusic = true, videos = listOf("https://example.com/0.mp4", "https://example.com/1.mp4"))
+        val videos = listOf("https://example.com/0.mp4", "https://example.com/1.mp4")
+        val preview = album(hasMusic = true, imageVideos = videos)
+        assertEquals(videos, preview.imageVideos)
+        assertEquals(true, preview.hasMusic)
         val outputs = mapOf(0 to AlbumOutput.MOTION, 1 to AlbumOutput.STATIC)
-        assertEquals("下载选中（2 张，其中 1 张存实况）+ 配乐",
-            albumDownloadLabel(preview, AlbumContent.ALL, listOf(0, 1), outputs))
-        assertEquals("下载选中（1 张）",
-            albumDownloadLabel(preview, AlbumContent.IMAGES, listOf(1), outputs))
-        assertEquals("只下载配乐", albumDownloadLabel(preview, AlbumContent.MUSIC, emptyList(), outputs))
+        val all = albumDownloadLabel(preview, AlbumContent.ALL, listOf(0, 1), outputs)
+        val imagesOnly = albumDownloadLabel(preview, AlbumContent.IMAGES, listOf(1), outputs)
+        val musicOnly = albumDownloadLabel(preview, AlbumContent.MUSIC, emptyList(), outputs)
+        assertEquals("all was: $all", "下载选中（2 张，其中 1 张存实况）+ 配乐", all)
+        assertEquals("images was: $imagesOnly", "下载选中（1 张）", imagesOnly)
+        assertEquals("music was: $musicOnly", "只下载配乐", musicOnly)
     }
 
     @Test fun singleItemNoticeFollowsTheCurrentLiveOrStillChoice() {

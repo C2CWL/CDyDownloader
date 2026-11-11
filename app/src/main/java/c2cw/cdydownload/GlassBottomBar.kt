@@ -34,7 +34,7 @@ internal const val TAB_SETTINGS = 3
 internal const val TAB_COUNT = 4
 
 private data class BarTab(val label: String, val icon: String)
-private val Tabs = listOf(BarTab("首页", "home"), BarTab("关注", "star"), BarTab("下载记录", "download"), BarTab("设置", "settings"))
+private val Tabs = listOf(BarTab("首页", "home"), BarTab("关注", "user-heart"), BarTab("下载记录", "download"), BarTab("设置", "settings"))
 
 private val ItemWidth = 78.dp
 private val BarHeight = 62.dp

@@ -45,7 +45,7 @@ import java.util.Locale
                 verticalArrangement = Arrangement.Center) {
                 Box(Modifier.size(72.dp).clip(RoundedCornerShape(18.dp)).background(colors.surfaceContainer),
                     contentAlignment = Alignment.Center) {
-                    Glyph("star", modifier = Modifier.size(30.dp), tint = colors.onSurfaceVariant)
+                    Glyph("user-heart", modifier = Modifier.size(30.dp), tint = colors.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(18.dp))
                 Text("还没有关注的作者", style = MaterialTheme.typography.titleMedium)

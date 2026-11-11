@@ -133,7 +133,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
         else OutlinedButton(onClick = onFollow, shape = RoundedCornerShape(12.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, colors.primary),
             modifier = Modifier.fillMaxWidth().height(46.dp).testTag("followToggle")) {
-            Glyph("star", modifier = Modifier.size(18.dp), tint = colors.primary)
+            Glyph("user-heart", modifier = Modifier.size(18.dp), tint = colors.primary)
             Text("  关注此人", color = colors.primary, fontWeight = FontWeight.SemiBold)
         }
     }
