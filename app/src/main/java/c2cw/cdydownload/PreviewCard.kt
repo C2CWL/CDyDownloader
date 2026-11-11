@@ -36,7 +36,7 @@ import java.util.Locale
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if(preview.cover.isNotBlank())
                 Box(Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(20.dp))) {
-                    RemoteImage(preview.cover, Modifier.fillMaxSize())
+                    RemoteImage(preview.cover, Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)
                     Row(Modifier.align(Alignment.TopStart).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         PreviewBadge("${preview.platform.label} · 无水印")
                         if(preview.isAlbum) PreviewBadge("${preview.images.size} 张图片")
@@ -72,7 +72,7 @@ import java.util.Locale
                         Box(Modifier.size(84.dp).clip(RoundedCornerShape(16.dp))
                             .clickable { vm.toggleAlbumImage(index) }
                             .testTag("albumImage-$index")) {
-                            RemoteImage(url, Modifier.fillMaxSize())
+                            RemoteImage(url, Modifier.fillMaxSize(), referer = preview.referer, userAgent = preview.userAgent)
                             PreviewBadge("${index + 1}")
                             Checkbox(checked = selected, onCheckedChange = { vm.toggleAlbumImage(index) },
                                 modifier = Modifier.align(Alignment.TopEnd).testTag("albumImageCheck-$index"))

@@ -12,7 +12,9 @@ data class MediaPreview(
     val likes: Int = -1,
     val comments: Int = -1,
     val shares: Int = -1,
-    val publishedAt: Long = 0
+    val publishedAt: Long = 0,
+    val referer: String = "https://www.douyin.com/",
+    val userAgent: String = VideoResolver.MOBILE
 ) {
     val isAlbum get() = images.isNotEmpty()
 }
@@ -28,5 +30,7 @@ internal fun VideoInfo.toPreview() = MediaPreview(
     likes = likes,
     comments = comments,
     shares = shares,
-    publishedAt = publishedAt
+    publishedAt = publishedAt,
+    referer = referer,
+    userAgent = userAgent
 )

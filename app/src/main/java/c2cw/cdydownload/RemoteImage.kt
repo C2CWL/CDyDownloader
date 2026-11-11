@@ -2,6 +2,7 @@ package c2cw.cdydownload
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -31,33 +33,44 @@ internal object PreviewImages {
 
     fun cached(url: String): Bitmap? = if (url.isBlank()) null else cache.get(url)
 
-    suspend fun load(url: String): Bitmap? = withContext(Dispatchers.IO) {
+    suspend fun load(url: String, referer: String, userAgent: String): Bitmap? = withContext(Dispatchers.IO) {
         cached(url)?.let { return@withContext it }
         val request = Request.Builder().url(url)
-            .header("User-Agent", VideoResolver.MOBILE)
-            .header("Referer", "https://www.douyin.com/")
+            .header("User-Agent", userAgent)
+            .header("Referer", referer)
             .build()
         try {
             VideoResolver.client.newCall(request).execute().use { response ->
-                if(!response.isSuccessful) return@withContext null
+                if(!response.isSuccessful) {
+                    Log.w("PreviewImages", "HTTP ${response.code} from ${request.url.host}")
+                    return@withContext null
+                }
                 val bytes = response.body?.bytes() ?: return@withContext null
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                 var sample = 1
                 while(bounds.outWidth / (sample * 2) >= 720) sample *= 2
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-                    ?.also { cache.put(url, it) }
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size,
+                    BitmapFactory.Options().apply { inSampleSize = sample })
+                if(bitmap != null) cache.put(url, bitmap)
+                else Log.w("PreviewImages", "Decode failed from ${request.url.host}: ${response.header("Content-Type")}")
+                bitmap
             }
-        } catch(_: Exception) {
+        } catch(e: CancellationException) {
+            throw e
+        } catch(e: Exception) {
+            Log.w("PreviewImages", "Load failed from ${request.url.host}: ${e.javaClass.simpleName}")
             null
         }
     }
 }
 
 @Composable internal fun RemoteImage(url: String, modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Crop) {
-    var bitmap by remember(url) { mutableStateOf(PreviewImages.cached(url)) }
-    LaunchedEffect(url) { if(bitmap == null) bitmap = PreviewImages.load(url) }
+    contentScale: ContentScale = ContentScale.Crop, referer: String, userAgent: String) {
+    var bitmap by remember(url, referer, userAgent) { mutableStateOf(PreviewImages.cached(url)) }
+    LaunchedEffect(url, referer, userAgent) {
+        if(bitmap == null) bitmap = PreviewImages.load(url, referer, userAgent)
+    }
     val loaded = bitmap
     if(loaded != null) Image(loaded.asImageBitmap(), contentDescription = null, modifier = modifier, contentScale = contentScale)
     else Box(modifier.background(MaterialTheme.colorScheme.surfaceContainer))
