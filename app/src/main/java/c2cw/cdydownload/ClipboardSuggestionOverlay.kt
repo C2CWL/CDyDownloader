@@ -2,7 +2,6 @@ package c2cw.cdydownload
 
 import android.os.Build
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -46,8 +45,7 @@ internal val avoidsSystemIsland: Boolean get() = Build.VERSION.SDK_INT >= 36 ||
     AnimatedVisibility(prompt != null,
         modifier=Modifier.align(Alignment.TopCenter).statusBarsPadding()
             .padding(top=if(avoidsSystemIsland) 96.dp else 8.dp,start=16.dp,end=16.dp),
-        enter=slideInVertically(tween(220)) { -it } + fadeIn(),
-        exit=slideOutVertically(tween(180)) { -it } + fadeOut()) {
+        enter=UiMotion.headsUpEnter, exit=UiMotion.headsUpExit) {
         GlassPrompt(haze,swipe.widthIn(max=560.dp).fillMaxWidth().testTag("downloadHeadsUp")) {
             Column(Modifier.padding(start=18.dp,end=10.dp,top=10.dp,bottom=8.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically) {

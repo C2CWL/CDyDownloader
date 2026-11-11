@@ -81,7 +81,7 @@ private val paths = mapOf(
     "expand" to "M6,9 L12,15 L18,9",
     "arrow" to "M5,12 L19,12 M13,6 L19,12 L13,18",
     "chevron" to "M9,6 L15,12 L9,18",
-    "star" to "M12,3.5 L14.6,8.9 L20.5,9.6 L16.1,13.6 L17.3,19.5 L12,16.5 L6.7,19.5 L7.9,13.6 L3.5,9.6 L9.4,8.9 Z",
+    "user-heart" to "M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0 M6 21v-2a4 4 0 0 1 4 -4h.5 M18 22l3.35 -3.284a2.143 2.143 0 0 0 .005 -3.071a2.242 2.242 0 0 0 -3.129 -.006l-.224 .22l-.223 -.22a2.242 2.242 0 0 0 -3.128 -.006a2.143 2.143 0 0 0 -.006 3.071l3.355 3.296",
     "refresh" to "M20,12 A8,8 0,1 1,17.7,6.3 M20,4 L20,9 L15,9",
     "palette" to "M12,3 A9,9 0,1 0,12,21 C13.5,21 14,20 13.4,18.9 C12.8,17.7 13.6,16.5 15,16.5 L17,16.5 C19.2,16.5 21,14.7 21,12.5 C21,7.3 17,3 12,3 Z M7.5,12 L7.5,12.5 M10,7.5 L10,8 M15,7.5 L15,8"
 )
@@ -135,7 +135,7 @@ private val paths = mapOf(
             val distance = kotlin.math.abs(vm.requestedTab - pager.currentPage)
             // Far jumps would scroll through every page in between; land directly instead.
             if(distance > 1) pager.scrollToPage(vm.requestedTab)
-            else pager.animateScrollToPage(vm.requestedTab, animationSpec = UiMotion.snappy())
+            else pager.animateScrollToPage(vm.requestedTab, animationSpec = UiMotion.tab())
         }
     }
     LaunchedEffect(pager) {
@@ -161,7 +161,7 @@ private val paths = mapOf(
                         snapAnimationSpec = UiMotion.settle())
                 ) { index ->
                     when(index) {
-                        TAB_HOME -> HomePage(vm, topInset) { if(vm.submit()) requestNotifications() }
+                        TAB_HOME -> HomePage(vm, topInset) { requestNotifications() }
                         TAB_FOLLOW -> FollowPage(vm, topInset)
                         TAB_DOWNLOADS -> DownloadsPage(tasks, vm, requestNotifications, topInset)
                         else -> SettingsPage(vm, topInset) { enabled -> vm.setClipboard(enabled); if(enabled) checkClipboard() }
@@ -172,7 +172,7 @@ private val paths = mapOf(
             Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
                 Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 20.dp, end = 12.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    AnimatedContent(page, transitionSpec = { fadeIn(UiMotion.fade()) togetherWith fadeOut(UiMotion.fade(100)) },
+                    AnimatedContent(page, transitionSpec = { fadeIn(UiMotion.fade(UiMotion.Instant)) togetherWith fadeOut(UiMotion.fade(UiMotion.Instant)) },
                         modifier = Modifier.weight(1f), label = "title") { current ->
                         Text(when(current) { TAB_HOME -> "下载"; TAB_FOLLOW -> "关注"; TAB_DOWNLOADS -> "下载记录"; else -> "设置" },
                             style = MaterialTheme.typography.headlineMedium)
@@ -203,7 +203,7 @@ private val paths = mapOf(
             val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
             AnimatedVisibility(!typing, Modifier.align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom)).padding(bottom = 16.dp),
-                enter = fadeIn(UiMotion.fade()), exit = fadeOut(UiMotion.fade(100))) {
+                enter = fadeIn(UiMotion.fade(UiMotion.Instant)), exit = fadeOut(UiMotion.fade(UiMotion.Instant))) {
                 GlassBottomBar(page, haze, badge = follows.sumOf { it.newCount }) { vm.tab = it }
             }
             AnimatedVisibility(vm.author.visible, enter = UiMotion.screenEnter, exit = UiMotion.screenExit) {

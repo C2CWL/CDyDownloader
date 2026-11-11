@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 /** Shared quiet progress treatment: continuous rounded track, no endpoint dot or animated waves. */
 @Composable internal fun AppProgressBar(modifier: Modifier = Modifier, progress: (() -> Float)? = null) {
     val value=progress?.invoke()?.coerceIn(0f,1f)
-    val animated by animateFloatAsState(value ?: 0f,tween(220),label="progress")
+    val animated by animateFloatAsState(value ?: 0f, UiMotion.fade(UiMotion.Medium), label="progress")
     val phase=if(value == null) loadingPhase() else 0f
     val color=MaterialTheme.colorScheme.primary
     Canvas(modifier.fillMaxWidth().height(3.dp).progressSemantics(value)) {
@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 @Composable internal fun AppProgressSpinner(modifier: Modifier = Modifier, progress: (() -> Float)? = null,
     color: Color = MaterialTheme.colorScheme.primary, strokeWidth: Dp = 2.dp) {
     val value=progress?.invoke()?.coerceIn(0f,1f)
-    val animated by animateFloatAsState(value ?: 0f,tween(220),label="ringProgress")
+    val animated by animateFloatAsState(value ?: 0f, UiMotion.fade(UiMotion.Medium), label="ringProgress")
     val phase=if(value == null) loadingPhase() else 0f
     Canvas(modifier.size(24.dp).progressSemantics(value)) {
         val stroke=strokeWidth.toPx()
