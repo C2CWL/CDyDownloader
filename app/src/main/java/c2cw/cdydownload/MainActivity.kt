@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if(intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("text/") == true) {
             model.onShare(intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty())
-        } else if(intent?.getBooleanExtra("downloads", false) == true) model.tab = 1
+        } else if(intent?.getBooleanExtra("downloads", false) == true) model.tab = TAB_DOWNLOADS
     }
     override fun onResume() {
         super.onResume()

@@ -24,7 +24,7 @@ class YoutubeDownloadTest {
         val link = Links.detect("https://www.youtube.com/shorts/-9OM3w3TWUs")!!
         val task = store.add(link)
         try {
-            rule.runOnIdle { vm.settings = false; vm.tab = 1; DownloadService.start(rule.activity) }
+            rule.runOnIdle { vm.settings = false; vm.tab = TAB_DOWNLOADS; DownloadService.start(rule.activity) }
             val completed = withTimeout(240_000) {
                 while(store.get(task.id)?.status?.pending == true) delay(500)
                 store.get(task.id)!!

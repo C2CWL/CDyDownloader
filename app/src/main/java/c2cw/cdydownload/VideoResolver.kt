@@ -17,7 +17,9 @@ data class VideoInfo(
     val music: String? = null, val videoFallbacks: List<String> = emptyList(), val resolution: String = "", val audioCodec: String = "", val imageVideos: List<String?> = emptyList(), val separateAlbumMusic: Boolean = false, val musicCandidates: List<String> = emptyList(),
     val videoPlan: SegmentPlan? = null, val audioPlan: SegmentPlan? = null, val audioUserAgent: String? = null, val audioFallbacks: List<String> = emptyList(), val fps: Float = 0f, val specifications: MediaSpecifications? = null, val directVideoTracks: List<DirectVideoTrack> = emptyList(), val videoDecodeKey: String? = null,
     val author: String = "", val cover: String = "", val likes: Int = -1, val comments: Int = -1,
-    val shares: Int = -1, val publishedAt: Long = 0
+    val shares: Int = -1, val publishedAt: Long = 0,
+    /** Douyin only: lets the work page open the author's homepage. */
+    val authorSecUid: String = "", val authorAvatar: String = ""
 )
 
 class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
@@ -54,6 +56,7 @@ class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
             noRedirect.newCall(Request.Builder().url(url).header("User-Agent", MOBILE).build()).also(trackCall).execute().use { response ->
                 val next = if(response.code in 300..399) response.header("Location") else null
                 if (next == null) {
+                    DouyinUserLinks.secUidFromUrl(url)?.let { throw DouyinUserRedirect(it) }
                     return Links.fromUrl(url)?.takeUnless { it.key == link.key }
                         ?: error("分享链接没有指向视频，请复制视频的分享链接")
                 }
@@ -64,6 +67,7 @@ class VideoResolver(private val trackCall: (okhttp3.Call) -> Unit = {}) {
                     host == "douyin.com" || host.endsWith(".douyin.com") ||
                     host == "iesdouyin.com" || host.endsWith(".iesdouyin.com"))) { "分享链接跳转到了不支持的网站" }
                 url = target.toString()
+                DouyinUserLinks.secUidFromUrl(url)?.let { throw DouyinUserRedirect(it) }
                 Links.fromUrl(url)?.takeUnless {
                     it.key.startsWith("douyin-short:") || it.key.startsWith("b23.tv") || it.key.startsWith("bili2233.cn")
                 }?.let { return it }

@@ -164,7 +164,7 @@ internal object DouyinPage {
             val canonical = link.copy(url = "https://www.douyin.com/$kind/$id")
             return VideoInfo(canonical, "dy:$id", title, "", quality = "${urls.size} 张图片",
                 referer = "https://www.douyin.com/", userAgent = VideoResolver.MOBILE, images = urls, music = music, imageVideos = imageVideos, separateAlbumMusic = kind == "slides" || imageVideos.any { it != null }, musicCandidates = audioCandidates,
-                author = authorOf(item), cover = urls.first(), likes = countOf(item, "digg_count"),
+                author = authorOf(item), authorSecUid = item.optJSONObject("author")?.optString("sec_uid").orEmpty(), authorAvatar = firstUrl(item.optJSONObject("author")?.optJSONObject("avatar_thumb")?.optJSONArray("url_list")).orEmpty(), cover = urls.first(), likes = countOf(item, "digg_count"),
                 comments = countOf(item, "comment_count"), shares = countOf(item, "share_count"),
                 publishedAt = item.optLong("create_time") * 1000)
         }
@@ -186,7 +186,7 @@ internal object DouyinPage {
         val candidates = (ranked + highQuality + alternates + originals).distinct()
         return catalog(VideoInfo(link, "dy:$id", title, candidates.first(), quality = "自动画质",
             referer = "https://www.douyin.com/", userAgent = VideoResolver.MOBILE, videoFallbacks = candidates.drop(1),
-            author = authorOf(item), cover = coverOf(item), likes = countOf(item, "digg_count"),
+            author = authorOf(item), authorSecUid = item.optJSONObject("author")?.optString("sec_uid").orEmpty(), authorAvatar = firstUrl(item.optJSONObject("author")?.optJSONObject("avatar_thumb")?.optJSONArray("url_list")).orEmpty(), cover = coverOf(item), likes = countOf(item, "digg_count"),
             comments = countOf(item, "comment_count"), shares = countOf(item, "share_count"),
             publishedAt = item.optLong("create_time") * 1000), mobileVariants(video))
     }

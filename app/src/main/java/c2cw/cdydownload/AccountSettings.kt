@@ -16,9 +16,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     LaunchedEffect(Unit) { WebAccounts.refresh(true) }
     var confirmClear by remember { mutableStateOf(false) }
     var clearing by remember { mutableStateOf(false) }
-    Text("平台账号", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Surface(shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    c2cw.cdydownload.SectionLabel("平台账号")
+    Surface(shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Platform.accountPlatforms.forEach { platform ->
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -33,7 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
                             .putExtra("manage_account", statuses[platform] == AccountStatus.VALID))
                     }) { Text(when(statuses[platform]) { AccountStatus.EXPIRED -> "重新登录"; AccountStatus.VALID -> "管理登录"; else -> "网页登录" }) }
                 }
-                if(platform != Platform.accountPlatforms.last()) HorizontalDivider()
+                if(platform != Platform.accountPlatforms.last()) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
             Text("登录后使用账号可访问的画质与资源。会员、地区和平台验证限制仍以网站为准。",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

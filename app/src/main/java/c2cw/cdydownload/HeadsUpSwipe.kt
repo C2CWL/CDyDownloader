@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
                     (offset < -threshold/6 && velocity < -flingThreshold)
                 settling=scope.launch {
                     animate(offset,if(close) -height else 0f,
-                        animationSpec=if(close) tween(160) else spring(dampingRatio=0.85f,stiffness=500f)) { value,_ -> offset=value }
+                        animationSpec=if(close) tween(160) else spring(dampingRatio=1f,stiffness=1500f)) { value,_ -> offset=value }
                     if(close) onDismiss()
                 }
             })

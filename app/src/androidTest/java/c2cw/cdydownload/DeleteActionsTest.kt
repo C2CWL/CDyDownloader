@@ -42,7 +42,7 @@ class DeleteActionsTest {
             check(vm.store.tasks.value.none { it.status.active })
             originalPaused = vm.store.paused.value
             clipboardEnabled=vm.clipboardEnabled; vm.setClipboard(false)
-            vm.store.pauseAll(); vm.settings = false; vm.tab = 1
+            vm.store.pauseAll(); vm.settings = false; vm.tab = TAB_DOWNLOADS
             repeat(2) { index ->
                 val task = vm.store.add(Links.detect("https://www.bilibili.com/video/BV1xx411c7mD?p=${7200+index}")!!)
                 ids += task.id

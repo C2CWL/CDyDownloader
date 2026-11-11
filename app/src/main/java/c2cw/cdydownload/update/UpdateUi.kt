@@ -40,8 +40,8 @@ import java.util.Locale
     val context = LocalContext.current
     val manager = (context.applicationContext as DownloaderApp).updates
     val state by manager.state.collectAsStateWithLifecycle()
-    Text("关于", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Surface(shape = RoundedCornerShape(16.dp), modifier = Modifier.testTag("aboutUpdate")) {
+    c2cw.cdydownload.SectionLabel("关于")
+    Surface(shape = RoundedCornerShape(14.dp), modifier = Modifier.testTag("aboutUpdate")) {
         Column {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
