@@ -34,7 +34,7 @@ import java.util.Locale
 /** Shows resolved media before queueing and lets album images be chosen individually. */
 @Composable internal fun PreviewCard(preview: MediaPreview, vm: MainViewModel) {
     Surface(modifier = Modifier.fillMaxWidth().testTag("previewCard"),
-        shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if(preview.cover.isNotBlank())

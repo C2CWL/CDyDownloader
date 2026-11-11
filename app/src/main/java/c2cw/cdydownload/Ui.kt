@@ -357,7 +357,7 @@ private val paths = mapOf(
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ResolvePanel(loading = vm.qualityLoading, resolved = vm.isResolved(detected),
             failed = vm.resolveError != null, platform = detected?.platform?.label) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -383,10 +383,6 @@ private val paths = mapOf(
                         vm.error = null; candidate = null
                     }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
                 }
-                if(detected != null && vm.qualityLoading) {
-                    Text("正在解析作品信息…", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 vm.resolveError?.let { message ->
                     Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = { vm.retryResolve(detected) }, modifier = Modifier.testTag("retryResolve")) { Text("重试解析") }
@@ -394,7 +390,7 @@ private val paths = mapOf(
             }
         }
         vm.preview?.let { preview -> PreviewCard(preview, vm) }
-        if(vm.preview?.isAlbum == true) UiGroup {
+        if(vm.preview?.isAlbum == true) ResolveOptions {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("保存内容", style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -406,7 +402,7 @@ private val paths = mapOf(
                     }
                 }
             }
-        } else if(vm.preview != null && !vm.preview!!.isAlbum) UiGroup {
+        } else if(vm.preview != null && !vm.preview!!.isAlbum) ResolveOptions {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("下载模式", style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -426,15 +422,13 @@ private val paths = mapOf(
         val albumReady = preview?.isAlbum != true ||
             if(vm.albumContent == AlbumContent.MUSIC) preview.hasMusic else vm.selectedAlbumImages.isNotEmpty()
         val canDownload = vm.isResolved(detected) && !vm.qualityLoading && albumReady
-        MiuixButton(onClick = submit, enabled = canDownload,
-            colors = MiuixButtonDefaults.buttonColorsPrimary(), cornerRadius = 10.dp, minHeight = 54.dp,
-            modifier = Modifier.fillMaxWidth().testTag("resolveThenDownload")) {
+        Button(onClick = submit, enabled = canDownload, shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).testTag("resolveThenDownload")) {
             Text(when {
                 vm.qualityLoading -> "正在解析…"
                 preview?.isAlbum == true -> albumAction(preview, vm.albumContent, vm.selectedAlbumImages.size)
                 else -> "开始下载"
-            }, color = if(canDownload)
-                MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.disabledOnPrimaryButton)
+            }, fontWeight = FontWeight.Bold)
         }
     }
 }

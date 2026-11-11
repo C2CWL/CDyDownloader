@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 @Composable internal fun InlineQualityPicker(catalog: MediaSpecifications, chosen: String?, linkKey: String,
     choose: (String?) -> Unit) {
     val options = listOf(TrackOption("", "自动（推荐）")) + catalog.videos
-    UiGroup {
+    ResolveOptions {
         InlineTrackPicker("画质", options, chosen.orEmpty(), true, "quality", linkKey) {
             choose(it.takeIf(String::isNotEmpty))
         }
