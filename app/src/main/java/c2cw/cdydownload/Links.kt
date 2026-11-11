@@ -10,7 +10,7 @@ data class VideoLink(val platform: Platform, val url: String, val key: String, v
 
 
 object Links {
-    private val urls = Regex("""(?i)(?:https?://)?(?:[a-z0-9-]+\.)+(?:com|cn|tv|be)/[^\s<>"\[\](){}，。！？、【】（）]+""")
+    private val urls = Regex("""(?i)(?:https?://)?(?:[a-z0-9_.~%-]+@)?(?:[a-z0-9-]+\.)+(?:com|cn|tv|be)/[^\s<>"\[\](){}，。！？、【】（）]+""")
     private val bv = Regex("""(?<![A-Za-z0-9])BV[1-9A-HJ-NP-Za-km-z]{10}(?![A-Za-z0-9])""")
     private val av = Regex("""(?i)^av([1-9][0-9]{0,18})$""")
     private val youtubeId = Regex("[A-Za-z0-9_-]{11}")
