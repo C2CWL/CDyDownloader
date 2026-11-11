@@ -50,6 +50,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.02.01"))
     implementation("androidx.activity:activity-compose:1.12.3")
     implementation("androidx.compose.material3:material3")
+    implementation("top.yukonga.miuix.kmp:miuix:0.8.6")
     implementation("androidx.compose.foundation:foundation")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.02.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

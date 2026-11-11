@@ -13,14 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.DragScope
 import androidx.compose.foundation.gestures.DraggableState
@@ -79,27 +72,9 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
         derivedStateOf { (pager.currentPage + pager.currentPageOffsetFraction).coerceIn(0f, 1f) }
     }
     val colors = MaterialTheme.colorScheme
-    val interactions = remember { MutableInteractionSource() }
-    val tabPressed by interactions.collectIsPressedAsState()
-    var pointerPressed by remember { mutableStateOf(false) }
-    val pressed = pointerPressed || tabPressed
-    val islandScale by animateFloatAsState(
-        targetValue = if(pressed) .94f else 1f,
-        animationSpec = if(pressed) tween(75) else spring(dampingRatio = .84f, stiffness = 950f),
-        label = "tabIslandPress"
-    )
     Box(modifier.width(TabWidth * 2 + TabInset * 2).testTag("tabIsland")
-        .pointerInput(Unit) {
-            // Observe without consuming: capsule drags retain their own gesture arbitration.
-            try {
-                awaitPointerEventScope {
-                    while(true) pointerPressed = awaitPointerEvent(PointerEventPass.Initial).changes.any { it.pressed }
-                }
-            } finally { pointerPressed = false }
-        }
-        .graphicsLayer { scaleX = islandScale; scaleY = islandScale }
-        .shadow(3.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp))
-        .border(1.dp, colors.outlineVariant.copy(alpha = .8f), RoundedCornerShape(22.dp))) {
+        .shadow(1.dp, RoundedCornerShape(28.dp)).clip(RoundedCornerShape(28.dp))
+        .border(0.5.dp, colors.outlineVariant.copy(alpha = .4f), RoundedCornerShape(28.dp))) {
         TabGlassBackdrop(haze,progress,rtl,Modifier.matchParentSize())
         Box(Modifier.padding(TabInset).height(TabHeight).selectableGroup()
             .draggable(state = dragState, orientation = Orientation.Horizontal,
@@ -111,7 +86,7 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
                         if(velocity > 0) 1 else 0
                     } else position.roundToInt().coerceIn(0, 1)
                     pager.animateScrollToPage(target,
-                        animationSpec = spring(dampingRatio = .86f, stiffness = 720f))
+                        animationSpec = spring(dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness))
                 })) {
             Box(Modifier.offset { IntOffset((progress * travel).roundToInt(), 0) }
                 .width(TabWidth).fillMaxHeight().clip(RoundedCornerShape(16.dp))
@@ -123,7 +98,7 @@ private class CapsuleDragState(private val pager: PagerState, private val travel
                     Row(Modifier.weight(1f).fillMaxHeight().clip(CircleShape)
                         .testTag("tab$index")
                         .selectable(selected = pager.currentPage == index, role = Role.Tab,
-                            interactionSource = interactions, indication = null,
+                            interactionSource = null, indication = null,
                             onClick = { onSelect(index) }),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {

@@ -14,14 +14,12 @@ import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import top.yukonga.miuix.kmp.basic.Button as MiuixButton
+import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card as MiuixCard
+import top.yukonga.miuix.kmp.basic.Switch as MiuixSwitch
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.platform.testTag
@@ -54,8 +52,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -87,15 +83,46 @@ private val Night = darkColorScheme(
     outlineVariant = Color(0xFF393939), error = Color(0xFFFFB3B8)
 )
 @Composable fun DownloaderTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if(isSystemInDarkTheme()) Night else Day, typography = Typography(
-        headlineMedium = androidx.compose.ui.text.TextStyle(fontSize = 27.sp, fontWeight = FontWeight.Bold),
-        titleLarge = androidx.compose.ui.text.TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
-        titleMedium = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-        bodyLarge = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-        bodyMedium = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
-        labelLarge = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium)
-    ), content = content)
+    val colors = if(isSystemInDarkTheme()) Night else Day
+    val miuixColors = if(isSystemInDarkTheme()) top.yukonga.miuix.kmp.theme.darkColorScheme(
+        primary = colors.primary, onPrimary = colors.onPrimary, primaryVariant = colors.primary,
+        primaryContainer = colors.primary, onPrimaryContainer = colors.onPrimary,
+        disabledPrimary = colors.primaryContainer, disabledPrimaryButton = colors.primaryContainer,
+        background = colors.background, surface = colors.background,
+        surfaceContainer = colors.surface, onSurfaceContainer = colors.onSurface, onSurface = colors.onSurface,
+        onBackground = colors.onSurface, onSurfaceContainerVariant = colors.onSurfaceVariant
+    ) else top.yukonga.miuix.kmp.theme.lightColorScheme(
+        primary = colors.primary, onPrimary = colors.onPrimary, primaryVariant = colors.primary,
+        primaryContainer = colors.primary, onPrimaryContainer = colors.onPrimary,
+        disabledPrimary = colors.primaryContainer, disabledPrimaryButton = colors.primaryContainer,
+        background = colors.background, surface = colors.background,
+        surfaceContainer = colors.surface, onSurfaceContainer = colors.onSurface, onSurface = colors.onSurface,
+        onBackground = colors.onSurface, onSurfaceContainerVariant = colors.onSurfaceVariant
+    )
+    MiuixTheme(colors = miuixColors) {
+        MaterialTheme(colorScheme = colors, typography = Typography(
+            headlineMedium = androidx.compose.ui.text.TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold),
+            titleLarge = androidx.compose.ui.text.TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+            titleMedium = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+            bodyLarge = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
+            bodyMedium = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
+            labelLarge = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        ), content = content)
+    }
 }
+internal object UiMotion {
+    const val Damping = 1f
+    const val Stiffness = 1100f
+}
+
+@Composable internal fun UiGroup(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(24.dp)
+    MiuixCard(modifier = modifier.fillMaxWidth().clip(shape)
+        .then(if(onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        cornerRadius = 24.dp, insideMargin = PaddingValues(0.dp), content = content)
+}
+
 private val paths = mapOf(
     "completed" to "M22,12 A10,10 0,1 1,2,12 A10,10 0,1 1,22,12 M7,12 L10.5,15.5 L17,8.5",
     "clock" to "M22,12 A10,10 0,1 1,2,12 A10,10 0,1 1,22,12 M12,6 L12,12 L16,14",
@@ -173,7 +200,8 @@ private val paths = mapOf(
     LaunchedEffect(vm.tabRequest) {
         if(vm.tabRequest != vm.consumedTabRequest) {
             vm.consumedTabRequest = vm.tabRequest
-            pager.animateScrollToPage(vm.requestedTab)
+            pager.animateScrollToPage(vm.requestedTab, animationSpec = spring(
+                dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness))
         }
     }
     LaunchedEffect(pager) {
@@ -194,48 +222,9 @@ private val paths = mapOf(
                     state = pager, modifier = Modifier.fillMaxSize().testTag("pages"),
                     beyondViewportPageCount = 1, key = { it }
                 ) { page ->
-                    if(page == 0) {
-                    // While typing, rest the card on the keyboard instead of leaving the input floating near the top
-                    // with the keyboard's padding showing as a gap underneath it.
-                    val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
-                    val homeScroll = rememberScrollState()
-                    Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset).padding(horizontal = 28.dp)
-                            .padding(bottom = if(typing) 12.dp else 120.dp).imePadding(),
-                        contentAlignment = Alignment.TopCenter) {
-                        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().verticalScroll(homeScroll).padding(top = 20.dp)) {
-                        // Reserve the carousel and its gap even before remote messages arrive.
-                        Column(Modifier.fillMaxWidth().height(60.dp)) {
-                            HomeMessageCarousel(vm.homeMessages, pager.currentPage == 0 && !vm.inputVisible)
-                        }
-                        AnimatedContent(
-                            targetState = vm.inputVisible,
-                            modifier = Modifier.widthIn(max = 540.dp).fillMaxWidth(),
-                            transitionSpec = {
-                                if(targetState) {
-                                    (fadeIn(tween(150)) + slideInVertically(tween(180)) { it / 18 }) togetherWith
-                                        fadeOut(tween(110))
-                                } else {
-                                    fadeIn(tween(130)) togetherWith
-                                        (fadeOut(tween(100)) + slideOutVertically(tween(120)) { it / 20 })
-                                }
-                            },
-                            label = "homeInputCard"
-                        ) { inputVisible ->
-                            if(inputVisible) LinkInputCard(vm) { if(vm.submit()) requestNotifications() }
-                            else Surface(onClick = { vm.openInput() }, modifier = Modifier.fillMaxWidth().height(66.dp),
-                                shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 0.dp) {
-                                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Glyph("link", tint = MaterialTheme.colorScheme.primary)
-                                    Text("粘贴视频链接", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                    HomePasteButton(pager.currentPage == 0 && !inputVisible, vm::openInput)
-                                }
-                            }
-                        }
-                        }
-                    }
-                } else DownloadsPage(tasks, vm, requestNotifications, topInset)
+                    if(page == 0) HomePage(vm, pager.currentPage == 0, topInset) {
+                        if(vm.submit()) requestNotifications()
+                    } else DownloadsPage(tasks, vm, requestNotifications, topInset)
                 }
             }
             // Extend just the backdrop; layout and touch targets keep their original bounds.
@@ -252,7 +241,7 @@ private val paths = mapOf(
                         IconButton(onClick = { vm.settings = false }) { Glyph("back", "返回") }
                         Text("设置", style = MaterialTheme.typography.titleLarge)
                     } else {
-                        Text(if(pager.currentPage == 0) androidx.compose.ui.res.stringResource(R.string.app_name) else "下载", style = MaterialTheme.typography.titleLarge,
+                        Text(if(pager.currentPage == 0) "下载" else "下载记录", style = MaterialTheme.typography.headlineMedium,
                             modifier = Modifier.weight(1f))
                         if(pager.currentPage == 1) {
                             if(tasks.any { it.status.pending }) {
@@ -275,7 +264,6 @@ private val paths = mapOf(
                 FloatingTabs(pager, haze,
                     Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)) { vm.tab = it }
             }
-            ClipboardSuggestionOverlay(vm, haze, requestNotifications)
         }
     }
     DeleteTasksDialog(vm)
@@ -283,6 +271,68 @@ private val paths = mapOf(
     c2cw.cdydownload.update.UpdateOverlay(updateManager, updateHaze)
 }
 
+
+@Composable private fun HomePage(vm: MainViewModel, active: Boolean, topInset: Dp, submit: () -> Unit) {
+    val typing = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
+    Box(Modifier.fillMaxSize().testTag("homePage").padding(top = topInset)
+        .padding(horizontal = 20.dp).padding(bottom = if(typing) 12.dp else 104.dp).imePadding(),
+        contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = 540.dp).fillMaxWidth().verticalScroll(rememberScrollState())
+            .padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("把喜欢的作品，留在本地", style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HomeMessageCarousel(vm.homeMessages, active && !vm.inputVisible)
+            if(!vm.inputVisible) ClipboardSuggestionCard(vm)
+            if(vm.inputVisible) LinkInputCard(vm, submit)
+            else UiGroup {
+                Row(Modifier.fillMaxWidth().heightIn(min = 88.dp)
+                    .clickable(onClickLabel = "添加下载链接", onClick = { vm.openInput() })
+                    .padding(20.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Glyph("link", tint = MaterialTheme.colorScheme.primary)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("添加下载链接", style = MaterialTheme.typography.titleMedium)
+                        Text("粘贴链接或完整分享文案", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    HomePasteButton(active, vm::openInput)
+                }
+            }
+            if(!vm.inputVisible) Text("支持 B 站、抖音、小红书、YouTube、微博和微信视频号",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp))
+        }
+    }
+}
+
+@Composable private fun ClipboardSuggestionCard(vm: MainViewModel) {
+    val prompt = vm.clipboardPrompt?.takeIf { vm.clipboardEnabled } ?: return
+    UiGroup(modifier = Modifier.testTag("inlineClipboardSuggestion")) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PlatformIcon(prompt.link.platform)
+                Text("发现作品链接", style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f).padding(start = 10.dp))
+                IconButton(onClick = vm::dismissClipboard) { Glyph("close", "忽略此提示") }
+            }
+            when(prompt) {
+                is ClipboardPrompt.Resolving -> {
+                    AppProgressBar(Modifier.fillMaxWidth())
+                    Text("正在解析链接，请稍候…", style = MaterialTheme.typography.bodyMedium)
+                }
+                is ClipboardPrompt.Ready -> Text(prompt.info.title, maxLines = 2,
+                    overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                is ClipboardPrompt.Failed -> Text("解析失败，请检查网络后重试。",
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                if(prompt is ClipboardPrompt.Failed) TextButton(onClick = vm::retryClipboard) { Text("重试") }
+                TextButton(onClick = { vm.openInput(prompt.link.url) },
+                    modifier = Modifier.testTag("openClipboardPreview")) { Text("查看并选择") }
+            }
+        }
+    }
+}
 
 @Composable private fun LinkInputCard(vm: MainViewModel, submit: () -> Unit) {
     val context = LocalContext.current
@@ -304,23 +354,23 @@ private val paths = mapOf(
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(vm.clipboardEnabled) { if(!vm.clipboardEnabled) candidate = null }
-    Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth().animateContentSize(animationSpec = tween(220, easing = FastOutSlowInEasing))) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("添加下载", style = MaterialTheme.typography.titleLarge)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("粘贴链接或完整分享文案", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        UiGroup {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("作品链接", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { vm.inputVisible = false }) { Text("收起") }
+                }
                 OutlinedTextField(value = vm.input, onValueChange = { vm.input = it.take(16000); vm.error = null; candidate = null },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp, max = 180.dp)
                         .testTag("downloadLinkInput").focusRequester(focus).onFocusChanged { focused = it.isFocused },
-                    placeholder = { Text("B 站 / 抖音 / 小红书 / YouTube / 微博链接") }, shape = RoundedCornerShape(12.dp),
+                    placeholder = { Text("粘贴链接，作品将在下方解析") }, shape = RoundedCornerShape(20.dp),
                     trailingIcon = if(vm.input.isNotEmpty()) {{ IconButton(onClick = {
                         vm.input = ""; vm.error = null; candidate = null; focus.requestFocus()
                     }, modifier = Modifier.testTag("clearLinkInput")) { Glyph("close", "清空输入") } }} else null,
                     isError = vm.error != null, maxLines = 5)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(if(candidate != null) "剪贴板中有${candidate?.let(Links::detect)?.platform?.label.orEmpty()}链接" else if(detected != null) "已识别：${detected.platform.label}链接" else "自动识别视频或图集",
+                    Text(if(candidate != null) "剪贴板中有${candidate?.let(Links::detect)?.platform?.label.orEmpty()}链接" else if(detected != null) "已识别：${detected.platform.label}" else "自动识别视频或图集",
                         style = MaterialTheme.typography.bodyMedium,
                         color = if(detected != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f))
@@ -329,58 +379,47 @@ private val paths = mapOf(
                         vm.error = null; candidate = null
                     }, modifier = Modifier.testTag("fillClipboardLink")) { Text(if(candidate != null) "填入" else "粘贴") }
                 }
-                vm.preview?.let { preview -> PreviewCard(preview, vm, submit) }
-                if(detected?.platform == Platform.DOUYIN) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("图集保存内容", style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AlbumContent.entries.forEach { content ->
-                                FilterChip(selected = vm.albumContent == content,
-                                    onClick = { vm.albumContent = content }, label = { Text(content.label) },
-                                    shape = CircleShape, modifier = Modifier.testTag("album-${content.name}"))
-                            }
-                        }
-                        Text("视频不受影响，图集按所选内容保存。", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                if(detected != null && vm.qualityLoading) {
+                    AppProgressBar(Modifier.fillMaxWidth().testTag("inlineResolveProgress"))
+                    Text("正在解析作品信息…", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if(detected != null && vm.qualityLoading)
-                    Text("正在解析作品信息…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 vm.resolveError?.let { message ->
                     Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = { vm.retryResolve(detected) }, modifier = Modifier.testTag("retryResolve")) { Text("重试解析") }
                 }
-                vm.qualityCatalog?.let { catalog ->
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("画质", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = vm.qualityChosen == null, onClick = { vm.qualityChosen = null },
-                                label = { Text("自动") }, shape = CircleShape, modifier = Modifier.testTag("quality-auto"))
-                            catalog.videos.forEach { option ->
-                                FilterChip(selected = vm.qualityChosen == option.id,
-                                    onClick = { vm.qualityChosen = option.id.takeIf { vm.qualityChosen != it } },
-                                    label = { Text(option.label) }, shape = CircleShape,
-                                    modifier = Modifier.testTag("quality-${option.id}"))
-                            }
-                        }
+            }
+        }
+        vm.preview?.let { preview -> PreviewCard(preview, vm) }
+        if(vm.preview?.isAlbum == true && detected?.platform == Platform.DOUYIN) UiGroup {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("保存内容", style = MaterialTheme.typography.titleMedium)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AlbumContent.entries.forEach { content ->
+                        FilterChip(selected = vm.albumContent == content, onClick = { vm.albumContent = content },
+                            label = { Text(content.label) }, shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.testTag("album-${content.name}"))
                     }
                 }
-                vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                TextButton(onClick = { vm.inputVisible = false }) { Text("取消") }
-                Button(onClick = submit, enabled = vm.isResolved(detected) && !vm.qualityLoading,
-                    shape = RoundedCornerShape(12.dp), modifier = Modifier.testTag("resolveThenDownload")) {
-                    Text(when {
-                        detected == null -> "下载"
-                        vm.qualityLoading -> "正在解析…"
-                        vm.isResolved(detected) && vm.preview?.isAlbum == true -> "下载所选（${vm.selectedAlbumImages.size}）"
-                        vm.isResolved(detected) -> "下载"
-                        else -> "解析中…"
-                    })
-                }
-            }
+        }
+        vm.qualityCatalog?.let { catalog ->
+            InlineQualityPicker(catalog, vm.qualityChosen, detected?.key.orEmpty()) { vm.qualityChosen = it }
+        }
+        vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+        val preview = vm.preview
+        val albumReady = preview?.isAlbum != true ||
+            if(vm.albumContent == AlbumContent.MUSIC) preview.hasMusic else vm.selectedAlbumImages.isNotEmpty()
+        val canDownload = vm.isResolved(detected) && !vm.qualityLoading && albumReady
+        MiuixButton(onClick = submit, enabled = canDownload,
+            colors = MiuixButtonDefaults.buttonColorsPrimary(), cornerRadius = 20.dp, minHeight = 54.dp,
+            modifier = Modifier.fillMaxWidth().testTag("resolveThenDownload")) {
+            Text(when {
+                vm.qualityLoading -> "正在解析…"
+                preview?.isAlbum == true -> albumAction(preview, vm.albumContent, vm.selectedAlbumImages.size)
+                else -> "开始下载"
+            }, color = if(canDownload)
+                MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.disabledOnPrimaryButton)
         }
     }
 }
@@ -445,9 +484,7 @@ private val paths = mapOf(
             }
         }
     }
-    Surface(modifier = Modifier.testTag("download-${task.id}"), shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+    UiGroup(modifier = Modifier.fillMaxWidth().testTag("download-${task.id}")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -577,9 +614,9 @@ private val paths = mapOf(
             }
         } }, confirmButton = {}, dismissButton = { TextButton(onClick = { selectParallelism = false }) { Text("取消") } })
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = topInset).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("下载", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(onClick = { selectParallelism = true }, shape = RoundedCornerShape(16.dp),
+        UiGroup(onClick = { selectParallelism = true },
             modifier = Modifier.testTag("parallelismSetting")) {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -591,19 +628,19 @@ private val paths = mapOf(
                 Glyph("arrow")
             }
         }
-        Surface(shape = RoundedCornerShape(16.dp)) {
+        UiGroup {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("将下载时间设为图片拍摄时间", style = MaterialTheme.typography.titleMedium)
                     Text("适用于之后下载的图片和实况图，覆盖原有拍摄时间，方便在相册中查找。不支持写入的格式仅设置相册时间。",
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Switch(checked = vm.imageDownloadTime, onCheckedChange = vm::changeImageDownloadTime)
+                MiuixSwitch(checked = vm.imageDownloadTime, onCheckedChange = vm::changeImageDownloadTime)
             }
         }
         AccountSettings()
         Text("链接与提醒", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(shape = RoundedCornerShape(16.dp)) {
+        UiGroup {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -611,23 +648,23 @@ private val paths = mapOf(
                         Text("打开应用或回到前台时，识别视频并提示下载。", style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = vm.clipboardEnabled, onCheckedChange = onClipboard)
+                    MiuixSwitch(checked = vm.clipboardEnabled, onCheckedChange = onClipboard)
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Text("仅识别 B 站、抖音、小红书、YouTube、微博和微信视频号作品，每次重新复制都会提醒，同一次复制不重复提醒。普通文本与敏感内容不会保存。", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Surface(shape = RoundedCornerShape(16.dp)) {
+        UiGroup {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("在其他应用中添加下载", style = MaterialTheme.typography.titleMedium)
                 Text("系统不允许后台读取剪贴板。在视频应用中选择「分享 → 更多 → CDy下载器」，确认后即可下载。",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Surface(onClick = {
+        UiGroup(onClick = {
             context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
-        }, shape = RoundedCornerShape(16.dp)) {
+        }) {
             Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("下载通知", style = MaterialTheme.typography.titleMedium)
@@ -644,7 +681,7 @@ private val paths = mapOf(
 @Composable private fun SaveLocationCard(vm: MainViewModel) {
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(vm.saveFolder) }
-    Surface(shape = RoundedCornerShape(16.dp), onClick = { draft = vm.saveFolder; editing = true }) {
+    UiGroup(onClick = { draft = vm.saveFolder; editing = true }) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
