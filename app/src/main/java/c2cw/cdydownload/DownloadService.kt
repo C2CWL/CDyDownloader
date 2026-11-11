@@ -53,7 +53,7 @@ class DownloadService : Service() {
     private val sizeClient = transferClient.newBuilder().callTimeout(8, TimeUnit.SECONDS).retryOnConnectionFailure(false).build()
     private val sizeProbeSlots = Semaphore(4)
     private val notifications get() = getSystemService(NotificationManager::class.java)
-    private val saveFolder get() = sanitizedSaveFolder(getSharedPreferences("settings", 0).getString(SAVE_FOLDER, DEFAULT_SAVE_FOLDER))
+    private fun saveFolder(kind: SaveKind) = readSaveFolder(getSharedPreferences("settings", 0), kind)
 
     override fun onCreate() {
         super.onCreate()
@@ -173,7 +173,7 @@ class DownloadService : Service() {
             val uri = publish(audio, info.title, task.id, mime = targetMime, extension = extension, audio = true, author = info.author, platform = info.source.platform)
             store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
                 mimeType = targetMime, resolution = "音频", fps = 0f, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
-            notifyResult(task.id, info.title, "音频已保存到 Music/$saveFolder", uri)
+            notifyResult(task.id, info.title, "音频已保存到 ${mediaLocationLabel("Music", saveFolder(SaveKind.MUSIC))}", uri)
             return
         }
 
@@ -216,7 +216,7 @@ class DownloadService : Service() {
         val measuredFps = savedFrameRate(this@DownloadService, uri.toString())
         store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
             resolution = measured.ifBlank { it.resolution }, fps = measuredFps.takeIf { it > 0 } ?: it.fps, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
-        notifyResult(task.id, info.title, "已保存到 Download/$saveFolder", uri)
+        notifyResult(task.id, info.title, "已保存到 ${mediaLocationLabel("Download", saveFolder(SaveKind.VIDEO))}", uri)
     }
 
     private suspend fun downloadAlbum(task: DownloadTask, info: VideoInfo, dir: File, progress: TaskTransferProgress) {
@@ -430,9 +430,9 @@ class DownloadService : Service() {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Video.Media.MIME_TYPE, mime)
             put(MediaStore.Video.Media.RELATIVE_PATH, when {
-                image -> "${Environment.DIRECTORY_PICTURES}/$saveFolder"
-                audio -> "${Environment.DIRECTORY_MUSIC}/$saveFolder"
-                else -> "${Environment.DIRECTORY_DOWNLOADS}/$saveFolder"
+                image -> mediaRelativePath(Environment.DIRECTORY_PICTURES, saveFolder(SaveKind.IMAGE))
+                audio -> mediaRelativePath(Environment.DIRECTORY_MUSIC, saveFolder(SaveKind.MUSIC))
+                else -> mediaRelativePath(Environment.DIRECTORY_DOWNLOADS, saveFolder(SaveKind.VIDEO))
             })
             put(MediaStore.Video.Media.IS_PENDING, 1)
             if(image && takenAt != null) put(MediaStore.Images.Media.DATE_TAKEN, takenAt)

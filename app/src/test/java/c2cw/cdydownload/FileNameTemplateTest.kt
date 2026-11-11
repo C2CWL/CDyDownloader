@@ -10,16 +10,19 @@ class FileNameTemplateTest {
 
     @Test
     fun defaultTemplateFormatsCorrectly() {
+        val dateMillis = 1700000000000L
+        val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(dateMillis))
         val result = formatFileName(
             template = null,
             title = "精彩视频",
             id = "123456789012345",
             author = "测试作者",
             platform = Platform.DOUYIN,
+            dateMillis = dateMillis,
             extension = "mp4"
         )
-        // Default template is "{title}-{id}"
-        assertEquals("精彩视频-123456789012.mp4", result)
+        assertEquals("$dateStr-123456789012.mp4", result)
+        assertTrue(NAMING_TEMPLATE_PRESETS.none { it.first.contains("{title}") })
     }
 
     @Test

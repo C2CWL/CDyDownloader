@@ -40,6 +40,7 @@ class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        AccentPreference.load(getSharedPreferences("settings", 0))
         enteredSignedIn = savedInstanceState?.getBoolean("entered_signed_in")
             ?: (intent.getBooleanExtra("manage_account", false) || WebAccounts.statuses.value[platform] == AccountStatus.VALID)
         lifecycle.addObserver(ForegroundClipboardObserver(this, {

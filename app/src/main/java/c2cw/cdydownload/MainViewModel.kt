@@ -30,12 +30,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     var clipboardEnabled by mutableStateOf(prefs.getBoolean("clipboard", true))
         private set
-    var saveFolder by mutableStateOf(sanitizedSaveFolder(prefs.getString(SAVE_FOLDER, DEFAULT_SAVE_FOLDER)))
+    var saveFolderVideo by mutableStateOf(readSaveFolder(prefs, SaveKind.VIDEO))
         private set
-    fun changeSaveFolder(name: String) {
-        saveFolder = sanitizedSaveFolder(name)
-        prefs.edit().putString(SAVE_FOLDER, saveFolder).apply()
+    var saveFolderImage by mutableStateOf(readSaveFolder(prefs, SaveKind.IMAGE))
+        private set
+    var saveFolderMusic by mutableStateOf(readSaveFolder(prefs, SaveKind.MUSIC))
+        private set
+    fun changeSaveFolder(kind: SaveKind, name: String) {
+        val value = optionalSaveFolder(name)
+        when(kind) {
+            SaveKind.VIDEO -> saveFolderVideo = value
+            SaveKind.IMAGE -> saveFolderImage = value
+            SaveKind.MUSIC -> saveFolderMusic = value
+        }
+        val key = when(kind) {
+            SaveKind.VIDEO -> SAVE_FOLDER_VIDEO
+            SaveKind.IMAGE -> SAVE_FOLDER_IMAGE
+            SaveKind.MUSIC -> SAVE_FOLDER_MUSIC
+        }
+        prefs.edit().putString(key, value).apply()
     }
+    var accentMode by mutableStateOf(AccentMode.WALLPAPER)
+        private set
+    fun changeAccentMode(mode: AccentMode) {
+        accentMode = mode
+        AccentPreference.mode = mode
+        prefs.edit().putString(ACCENT_MODE, mode.name).apply()
+    }
+    init { AccentPreference.load(prefs); accentMode = AccentPreference.mode }
     var fileNameTemplate by mutableStateOf(prefs.getString(FILE_NAME_TEMPLATE, DEFAULT_FILE_NAME_TEMPLATE) ?: DEFAULT_FILE_NAME_TEMPLATE)
         private set
     fun changeFileNameTemplate(template: String) {
