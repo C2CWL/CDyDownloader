@@ -391,14 +391,26 @@ private val paths = mapOf(
             }
         }
         vm.preview?.let { preview -> PreviewCard(preview, vm) }
-        if(vm.preview?.isAlbum == true && detected?.platform == Platform.DOUYIN) UiGroup {
+        if(vm.preview?.isAlbum == true) UiGroup {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("保存内容", style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AlbumContent.entries.forEach { content ->
+                    val availableAlbumOptions = AlbumContent.entries.filter { it != AlbumContent.MUSIC || vm.preview?.hasMusic == true }
+                    availableAlbumOptions.forEach { content ->
                         FilterChip(selected = vm.albumContent == content, onClick = { vm.albumContent = content },
                             label = { Text(content.label) }, shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.testTag("album-${content.name}"))
+                    }
+                }
+            }
+        } else if(vm.preview != null && !vm.preview!!.isAlbum) UiGroup {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("下载模式", style = MaterialTheme.typography.titleMedium)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VideoDownloadMode.entries.forEach { mode ->
+                        FilterChip(selected = vm.videoMode == mode, onClick = { vm.videoMode = mode },
+                            label = { Text(mode.label) }, shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.testTag("videoMode-${mode.name}"))
                     }
                 }
             }
@@ -674,9 +686,70 @@ private val paths = mapOf(
             }
         }
         SaveLocationCard(vm)
+        FileNameTemplateCard(vm)
         c2cw.cdydownload.update.AboutUpdateCard()
     }
 }
+
+@Composable private fun FileNameTemplateCard(vm: MainViewModel) {
+    var editing by remember { mutableStateOf(false) }
+    var draft by remember { mutableStateOf(vm.fileNameTemplate) }
+    val previewName = remember(draft) {
+        formatFileName(
+            template = draft,
+            title = "示例视频标题",
+            id = "bv1xx411c7md",
+            author = "作者名",
+            platform = Platform.BILI,
+            extension = "mp4"
+        )
+    }
+
+    UiGroup(onClick = { draft = vm.fileNameTemplate; editing = !editing }) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("文件命名规则", style = MaterialTheme.typography.titleMedium)
+                    Text(vm.fileNameTemplate, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("预览：$previewName", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Glyph(if(editing) "close" else "arrow")
+            }
+            Text("支持变量：{title} 标题、{author} 作者、{platform} 平台、{id} 作品ID、{date} 下载日期。动态照片保留 _MP 标记，图片自动追加序号。",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            AnimatedVisibility(editing,
+                enter = expandVertically(spring(dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness)),
+                exit = shrinkVertically(spring(dampingRatio = UiMotion.Damping, stiffness = UiMotion.Stiffness))) {
+                Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("预设规则", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        NAMING_TEMPLATE_PRESETS.forEach { (tmpl, label) ->
+                            FilterChip(
+                                selected = draft == tmpl,
+                                onClick = { draft = tmpl },
+                                label = { Text(label) },
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = draft,
+                        onValueChange = { draft = it.take(80) },
+                        label = { Text("自定义模板") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("fileNameTemplateInput")
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        TextButton(onClick = { draft = vm.fileNameTemplate; editing = false }) { Text("取消") }
+                        Button(onClick = { vm.changeFileNameTemplate(draft); editing = false }) { Text("保存") }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable private fun SaveLocationCard(vm: MainViewModel) {
     var editing by remember { mutableStateOf(false) }

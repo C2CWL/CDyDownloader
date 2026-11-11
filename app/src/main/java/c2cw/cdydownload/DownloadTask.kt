@@ -5,6 +5,8 @@ import java.util.UUID
 enum class AlbumMode { IMAGES, VIDEO }
 
 /** What an album task saves: images, the separate music track, or both. */
+enum class VideoDownloadMode(val label: String) { MERGE("合并下载"), VIDEO_ONLY("仅下载视频"), AUDIO_ONLY("仅下载音乐") }
+
 enum class AlbumContent(val label: String) { ALL("图片和配乐"), IMAGES("仅图片"), MUSIC("仅配乐") }
 
 enum class TaskStatus(val label: String) {
@@ -19,7 +21,7 @@ data class DownloadTask(
     val status: TaskStatus = TaskStatus.QUEUED, val bytes: Long = 0, val total: Long = -1,
     val speed: Long = 0, val quality: String = "", val uri: String = "", val error: String = "",
     val created: Long = System.currentTimeMillis(), val albumMode: AlbumMode = AlbumMode.IMAGES,
-    val outputUris: List<String> = emptyList(), val mimeType: String = "video/mp4", val resolution: String = "", val fps: Float = 0f, val selection: TrackSelection? = null, val albumContent: AlbumContent = AlbumContent.ALL, val albumImageIndices: List<Int>? = null
+    val outputUris: List<String> = emptyList(), val mimeType: String = "video/mp4", val resolution: String = "", val fps: Float = 0f, val selection: TrackSelection? = null, val videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, val albumContent: AlbumContent = AlbumContent.ALL, val albumImageIndices: List<Int>? = null
 ) {
     val progress: Float get() = if(total > 0) (bytes.toDouble()/total).toFloat().coerceIn(0f, 1f) else 0f
 }

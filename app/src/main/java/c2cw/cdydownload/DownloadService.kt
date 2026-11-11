@@ -147,7 +147,36 @@ class DownloadService : Service() {
     }
 
     private suspend fun downloadVideo(task: DownloadTask, info: VideoInfo, dir: File, progress: TaskTransferProgress) {
-        val audioInfo=info.copy(userAgent=info.audioUserAgent ?: info.userAgent)
+        val audioInfo = info.copy(userAgent = info.audioUserAgent ?: info.userAgent)
+        val mode = task.videoMode
+
+        if(mode == VideoDownloadMode.AUDIO_ONLY) {
+            // Audio-only download
+            val audioUrl = info.audio ?: info.music ?: error("该作品没有可单独提取的音频轨道")
+            val audio = File(dir, "audio.m4a")
+            if(info.audioPlan != null) downloadSegments(info.audioPlan, audio, audioInfo, task.id, progress, "audio")
+            else downloadWithFallback(listOf(audioUrl) + info.audioFallbacks) { url ->
+                download(url, audio, audioInfo, task.id, progress, "audio")
+            }
+            val metadata = android.media.MediaMetadataRetriever()
+            val mime = try { metadata.setDataSource(audio.absolutePath); metadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE) }
+                finally { metadata.release() }
+            val extension = when(mime) {
+                "audio/mpeg", "audio/mp3" -> "mp3"
+                "audio/mp4", "video/mp4" -> "m4a"
+                "audio/flac" -> "flac"
+                "audio/aac" -> "aac"
+                else -> if(info.audioCodec.equals("flac", true)) "flac" else "m4a"
+            }
+            val targetMime = if(extension == "m4a") "audio/mp4" else (mime ?: "audio/mp4")
+            state(task.id, TaskStatus.SAVING)
+            val uri = publish(audio, info.title, task.id, mime = targetMime, extension = extension, audio = true, author = info.author, platform = info.source.platform)
+            store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
+                mimeType = targetMime, resolution = "音频", fps = 0f, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
+            notifyResult(task.id, info.title, "音频已保存到 Music/$saveFolder", uri)
+            return
+        }
+
         var video = File(dir, "video.mp4")
         if(info.videoPlan != null) downloadSegments(info.videoPlan, video, info, task.id, progress, "video")
         else downloadWithFallback(listOf(info.video) + info.videoFallbacks,
@@ -161,7 +190,8 @@ class DownloadService : Service() {
             video = WechatCipher.decrypt(video, File(dir, "decoded.mp4"), info.videoDecodeKey)
             currentCoroutineContext().ensureActive()
         }
-        val output = if(info.audio != null) {
+
+        val output = if(mode == VideoDownloadMode.MERGE && info.audio != null) {
             val audio = File(dir, "audio.m4a")
             if(info.audioPlan != null) downloadSegments(info.audioPlan, audio, audioInfo, task.id, progress, "audio")
             else downloadWithFallback(listOf(info.audio) + info.audioFallbacks) { url ->
@@ -175,13 +205,15 @@ class DownloadService : Service() {
             }
         } else if(info.videoPlan != null || info.source.platform == Platform.YOUTUBE) {
             state(task.id, TaskStatus.MERGING)
-            File(dir, "merged.mp4").also { LosslessMuxer.remux(video, it,requireAudio=info.specifications?.let { specs -> specs.videos.find { option -> option.id == specs.selected.video }?.hasAudio } != false) }
+            val requireAudio = mode != VideoDownloadMode.VIDEO_ONLY && (info.specifications?.let { specs -> specs.videos.find { option -> option.id == specs.selected.video }?.hasAudio } != false)
+            File(dir, "merged.mp4").also { LosslessMuxer.remux(video, it, requireAudio = requireAudio) }
         } else video
+
         validateVideo(output)
         state(task.id, TaskStatus.SAVING)
-        val uri = publish(output, info.title, task.id)
+        val uri = publish(output, info.title, task.id, author = info.author, platform = info.source.platform)
         val measured = savedResolution(this@DownloadService, task.copy(uri = uri.toString(), mimeType = "video/mp4"))
-        val measuredFps = savedFrameRate(this@DownloadService,uri.toString())
+        val measuredFps = savedFrameRate(this@DownloadService, uri.toString())
         store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = uri.toString(),
             resolution = measured.ifBlank { it.resolution }, fps = measuredFps.takeIf { it > 0 } ?: it.fps, bytes = progress.snapshot().bytes, total = progress.snapshot().bytes, speed = 0, error = "") }
         notifyResult(task.id, info.title, "已保存到 Download/$saveFolder", uri)
@@ -235,7 +267,7 @@ class DownloadService : Service() {
                     extension = when(mime) { "image/jpeg" -> "jpg"; "image/png" -> "png"; "image/webp" -> "webp"; "image/gif" -> "gif"; "image/heif", "image/heic" -> "heic"; "image/avif" -> "avif"; else -> error("暂不支持此静态图片格式") }
                 }
                 state(task.id, TaskStatus.SAVING)
-                published += publish(output, info.title, "${task.id.take(8)}-${index + 1}", mime, extension, image = true, motion = motion != null, takenAt = takenAt)
+                published += publish(output, info.title, task.id, mime, extension, image = true, motion = motion != null, takenAt = takenAt, author = info.author, platform = info.source.platform, indexSuffix = "${index + 1}")
             }
             if(task.albumContent != AlbumContent.IMAGES) info.music?.let { url ->
                 state(task.id, TaskStatus.DOWNLOADING)
@@ -253,7 +285,7 @@ class DownloadService : Service() {
                     finally { metadata.release() }
                 val extension = when(mime) { "audio/mpeg", "audio/mp3" -> "mp3"; "audio/mp4", "video/mp4" -> "m4a"; "audio/flac" -> "flac"; "audio/aac" -> "aac"; else -> error("配乐格式无法识别") }
                 state(task.id, TaskStatus.SAVING)
-                published += publish(audio, info.title, task.id, if(extension == "m4a") "audio/mp4" else mime!!, extension, audio = true)
+                published += publish(audio, info.title, task.id, if(extension == "m4a") "audio/mp4" else mime!!, extension, audio = true, author = info.author, platform = info.source.platform)
             }
             currentCoroutineContext().ensureActive()
             store.update(task.id) { it.copy(status = TaskStatus.COMPLETED, uri = published.first().toString(),
@@ -371,10 +403,20 @@ class DownloadService : Service() {
             }) { "服务器返回的文件不是可播放视频" }
         } finally { extractor.release() }
     }
-    private suspend fun publish(file: File, title: String, id: String, mime: String = "video/mp4", extension: String = "mp4", image: Boolean = false, audio: Boolean = false, motion: Boolean = false, takenAt: Long? = null): Uri {
-        val clean = mediaBaseName(title)
+    private suspend fun publish(file: File, title: String, id: String, mime: String = "video/mp4", extension: String = "mp4", image: Boolean = false, audio: Boolean = false, motion: Boolean = false, takenAt: Long? = null, author: String = "", platform: Platform? = null, indexSuffix: String = ""): Uri {
+        val template = getSharedPreferences("settings", 0).getString(FILE_NAME_TEMPLATE, DEFAULT_FILE_NAME_TEMPLATE)
+        val displayName = formatFileName(
+            template = template,
+            title = title,
+            id = id,
+            author = author,
+            platform = platform,
+            motion = motion,
+            indexSuffix = indexSuffix,
+            extension = extension
+        )
         val values = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, "$clean-${id.take(12)}${if(motion) "_MP" else ""}.$extension")
+            put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Video.Media.MIME_TYPE, mime)
             put(MediaStore.Video.Media.RELATIVE_PATH, when {
                 image -> "${Environment.DIRECTORY_PICTURES}/$saveFolder"

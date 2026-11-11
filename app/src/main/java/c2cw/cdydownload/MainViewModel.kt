@@ -36,6 +36,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         saveFolder = sanitizedSaveFolder(name)
         prefs.edit().putString(SAVE_FOLDER, saveFolder).apply()
     }
+    var fileNameTemplate by mutableStateOf(prefs.getString(FILE_NAME_TEMPLATE, DEFAULT_FILE_NAME_TEMPLATE) ?: DEFAULT_FILE_NAME_TEMPLATE)
+        private set
+    fun changeFileNameTemplate(template: String) {
+        fileNameTemplate = template.trim().ifBlank { DEFAULT_FILE_NAME_TEMPLATE }
+        prefs.edit().putString(FILE_NAME_TEMPLATE, fileNameTemplate).apply()
+    }
     private val gate = PromptGate(prefs.getStringSet("handled", emptySet()).orEmpty().toMutableSet())
     private var selectedTab by mutableIntStateOf(0)
     var requestedTab by mutableIntStateOf(0)
@@ -86,6 +92,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var settings by mutableStateOf(false)
     var inputVisible by mutableStateOf(false)
     var input by mutableStateOf("")
+    /** Chosen before the download starts; for video works. */
+    var videoMode by mutableStateOf(VideoDownloadMode.MERGE)
     /** Chosen before the download starts; only album works use it. */
     var albumContent by mutableStateOf(AlbumContent.ALL)
     /** Resolved ahead of the download so the quality can be picked on the home page. */
@@ -112,6 +120,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         qualityKey = link?.key
         qualityCatalog = null
         qualityChosen = null
+        videoMode = VideoDownloadMode.MERGE
         preview = null
         resolvedInfo = null
         selectedAlbumImages = emptySet()
@@ -202,7 +211,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if(album && albumContent != AlbumContent.MUSIC && selected.isNullOrEmpty()) {
             error = "请至少选择一张图片"; return false
         }
-        val task = enqueue(link, info = info.takeIf { album }, selection = chosenQuality(), albumImageIndices = selected)
+        val task = enqueue(link, info = info.takeIf { album }, selection = chosenQuality(), videoMode = videoMode, albumImageIndices = selected)
         if(album) context.prepareDownload(task.id, info)
         if(!start(task.id)) { error = store.get(task.id)?.error; return false }
         inputVisible = false; tab = 1; settings = false
@@ -220,8 +229,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         return start(task.id)
     }
     private fun enqueue(link: VideoLink, info: VideoInfo? = null, selection: TrackSelection? = null,
-        albumImageIndices: List<Int>? = null): DownloadTask {
-        val task = store.add(link, selection = selection, albumContent = albumContent, albumImageIndices = albumImageIndices)
+        videoMode: VideoDownloadMode = VideoDownloadMode.MERGE, albumImageIndices: List<Int>? = null): DownloadTask {
+        val task = store.add(link, selection = selection, videoMode = videoMode, albumContent = albumContent, albumImageIndices = albumImageIndices)
         if(info != null) store.update(task.id) {
             it.copy(title = info.title, quality = info.quality, resolution = info.resolution)
         }
